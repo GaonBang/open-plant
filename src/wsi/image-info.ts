@@ -1,5 +1,33 @@
 import type { WsiImageSource, WsiTerm } from "./types";
 
+export interface RawImsInfo {
+  width?: number | null;
+  height?: number | null;
+  tileSize?: number | null;
+  zoom?: number | null;
+  path?: string | null;
+  mpp?: number | null;
+}
+
+export interface RawWsiTerm {
+  termId?: string | null;
+  termName?: string | null;
+  termColor?: string | null;
+}
+
+export interface RawImagePayload {
+  _id?: string | null;
+  name?: string | null;
+  width?: number | null;
+  height?: number | null;
+  tileSize?: number | null;
+  zoom?: number | null;
+  path?: string | null;
+  mpp?: number | null;
+  imsInfo?: RawImsInfo | null;
+  terms?: RawWsiTerm[] | null;
+}
+
 function trimTrailingSlash(value: string): string {
   return String(value ?? "").replace(/\/+$/, "");
 }
@@ -40,8 +68,8 @@ function joinImsTileRoot(tileBaseUrl: string): string {
   return `${base}/tiles`;
 }
 
-export function normalizeImageInfo(raw: any, tileBaseUrl: string): WsiImageSource {
-  const ims = raw?.imsInfo || {};
+export function normalizeImageInfo(raw: RawImagePayload, tileBaseUrl: string): WsiImageSource {
+  const ims = raw?.imsInfo ?? {};
   const isIms = !!raw?.imsInfo;
 
   const width = Number(ims.width ?? raw?.width ?? 0);
@@ -52,11 +80,11 @@ export function normalizeImageInfo(raw: any, tileBaseUrl: string): WsiImageSourc
   const mpp = Number(ims.mpp ?? raw?.mpp ?? 0);
 
   if (!width || !height || !tileSize || !tilePath) {
-    throw new Error("이미지 메타데이터가 불완전합니다. width/height/tileSize/path 확인 필요");
+    throw new Error("Incomplete image metadata: width/height/tileSize/path required");
   }
 
   const terms: WsiTerm[] = Array.isArray(raw?.terms)
-    ? raw.terms.map((term: any) => ({
+    ? raw.terms.map((term: RawWsiTerm) => ({
         termId: String(term?.termId ?? ""),
         termName: String(term?.termName ?? ""),
         termColor: String(term?.termColor ?? ""),

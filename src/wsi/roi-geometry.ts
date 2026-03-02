@@ -1,8 +1,17 @@
+import type { WsiRegionCoordinates } from "./types";
+
 export type RoiCoordinate = [number, number];
 export type RoiLinearRing = RoiCoordinate[];
 export type RoiPolygonRings = RoiLinearRing[];
 export type RoiMultiPolygon = RoiPolygonRings[];
 export type RoiGeometry = RoiLinearRing | RoiPolygonRings | RoiMultiPolygon;
+
+export function toRoiGeometry(coords: WsiRegionCoordinates | null | undefined): RoiGeometry | null | undefined;
+export function toRoiGeometry(coords: unknown): RoiGeometry | null | undefined;
+export function toRoiGeometry(coords: unknown): RoiGeometry | null | undefined {
+	if (coords == null) return null;
+	return coords as RoiGeometry;
+}
 
 export interface PreparedRoiPolygon {
 	outer: RoiLinearRing;

@@ -1,3 +1,5 @@
+import { clamp } from "./utils";
+
 export type BrushStrokeCoordinate = [number, number];
 export type BrushStrokeBounds = [number, number, number, number];
 
@@ -35,10 +37,6 @@ const DEFAULT_SMOOTHING_PASSES = 1;
 const MAX_SMOOTHING_PASSES = 4;
 const MIN_RADIUS = 1e-6;
 const ALPHA_THRESHOLD = 24;
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, value));
-}
 
 function closeRing(
 	coordinates: BrushStrokeCoordinate[],
