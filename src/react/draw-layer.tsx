@@ -1,7 +1,7 @@
 import { type CSSProperties, type MutableRefObject, type PointerEvent as ReactPointerEvent, type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { buildBrushStrokePolygon } from "../wsi/brush-stroke";
-import { normalizeRoiGeometry, type RoiGeometry } from "../wsi/roi-geometry";
-import { calcScaleResolution } from "../wsi/utils";
+import { normalizeRoiGeometry, toRoiGeometry } from "../wsi/roi-geometry";
+import { calcScaleResolution, clamp } from "../wsi/utils";
 
 export type StampDrawTool = "stamp-rectangle" | "stamp-circle" | "stamp-rectangle-4096px" | "stamp-rectangle-2mm2" | "stamp-circle-2mm2" | "stamp-circle-hpf-0.2mm2";
 
@@ -329,10 +329,6 @@ const DEFAULT_DRAW_AREA_TOOLTIP_OFFSET = {
 } as const;
 const REGION_LABEL_AUTO_LIFT_MAX_OFFSET_PX = 20;
 const REGION_LABEL_AUTO_LIFT_MAX_EPSILON = 1e-6;
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
 
 export function resolveRegionLabelAutoLiftOffsetPx(
   enabled: boolean | undefined,
@@ -865,7 +861,7 @@ function getTopAnchorFromPolygons(polygons: NormalizedDrawRegionPolygon[]): Draw
 }
 
 function normalizeDrawRegionPolygons(coordinates: DrawRegionCoordinates): NormalizedDrawRegionPolygon[] {
-  const multipolygon = normalizeRoiGeometry(coordinates as RoiGeometry);
+  const multipolygon = normalizeRoiGeometry(toRoiGeometry(coordinates));
   if (multipolygon.length === 0) return [];
 
   const out: NormalizedDrawRegionPolygon[] = [];

@@ -1,16 +1,13 @@
 import { useMemo, useState } from "react";
 import type { TileDefinition } from "./core/types";
 import { TileViewerCanvas } from "./react/tile-viewer-canvas";
+import { clamp } from "./wsi/utils";
 import "./app.css";
 
 const TILE_SIZE = 256;
 const GRID_SIZE = 8;
 const IMAGE_WIDTH = TILE_SIZE * GRID_SIZE;
 const IMAGE_HEIGHT = TILE_SIZE * GRID_SIZE;
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.max(min, Math.min(max, value));
-}
 
 export default function App(): React.ReactElement {
 	const [zoom, setZoom] = useState(0.5);
