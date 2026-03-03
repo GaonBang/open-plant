@@ -134,6 +134,7 @@ export function DrawLayer({
   regionLabelStyle,
   drawAreaTooltip,
   autoLiftRegionLabelAtMaxZoom = false,
+  clampRegionLabelToViewport = true,
   regionLabelAutoLiftOffsetPx,
   invalidateRef,
   className,
@@ -486,7 +487,7 @@ export function DrawLayer({
             offsetY: dynamicLabelStyle.offsetY + labelAutoLiftOffset,
           };
         }
-        drawRegionLabel(ctx, entry.region.label, anchorScreen, canvasWidth, canvasHeight, dynamicLabelStyle);
+        drawRegionLabel(ctx, entry.region.label, anchorScreen, canvasWidth, canvasHeight, dynamicLabelStyle, clampRegionLabelToViewport);
       }
     }
 
@@ -540,6 +541,7 @@ export function DrawLayer({
     resolvedLabelStyle,
     resolvedDrawAreaTooltipOptions,
     autoLiftRegionLabelAtMaxZoom,
+    clampRegionLabelToViewport,
     regionLabelAutoLiftOffsetPx,
     imageMpp,
     resolvedBrushOptions,

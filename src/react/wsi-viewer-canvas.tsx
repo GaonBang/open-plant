@@ -179,6 +179,7 @@ export interface WsiViewerCanvasProps {
   regionLabelStyle?: Partial<RegionLabelStyle>;
   drawAreaTooltip?: DrawAreaTooltipOptions;
   autoLiftRegionLabelAtMaxZoom?: boolean;
+  clampRegionLabelToViewport?: boolean;
   onPointerWorldMove?: (event: PointerWorldMoveEvent) => void;
   onPointHover?: (event: PointHoverEvent) => void;
   onPointClick?: (event: PointClickEvent) => void;
@@ -241,6 +242,7 @@ export function WsiViewerCanvas({
   regionLabelStyle,
   drawAreaTooltip,
   autoLiftRegionLabelAtMaxZoom = false,
+  clampRegionLabelToViewport = true,
   onPointerWorldMove,
   onPointHover,
   onPointClick,
@@ -795,9 +797,20 @@ export function WsiViewerCanvas({
     (coord: DrawCoordinate, screenCoord: DrawCoordinate, canvasWidth: number, canvasHeight: number) => {
       const renderer = rendererRef.current;
       if (!renderer) return null;
-      return pickPreparedRegionAt(coord, screenCoord, preparedRegionHits, renderer, resolvedRegionLabelStyle, resolveRegionLabelStyleProp, regionLabelAutoLiftOffsetPx, canvasWidth, canvasHeight);
+      return pickPreparedRegionAt(
+        coord,
+        screenCoord,
+        preparedRegionHits,
+        renderer,
+        resolvedRegionLabelStyle,
+        resolveRegionLabelStyleProp,
+        regionLabelAutoLiftOffsetPx,
+        canvasWidth,
+        canvasHeight,
+        clampRegionLabelToViewport
+      );
     },
-    [preparedRegionHits, resolvedRegionLabelStyle, resolveRegionLabelStyleProp, regionLabelAutoLiftOffsetPx]
+    [preparedRegionHits, resolvedRegionLabelStyle, resolveRegionLabelStyleProp, regionLabelAutoLiftOffsetPx, clampRegionLabelToViewport]
   );
 
   const requestCustomLayerRedraw = useCallback(() => {
@@ -1198,6 +1211,7 @@ export function WsiViewerCanvas({
           regionLabelStyle={regionLabelStyle}
           drawAreaTooltip={drawAreaTooltip}
           autoLiftRegionLabelAtMaxZoom={autoLiftRegionLabelAtMaxZoom}
+          clampRegionLabelToViewport={clampRegionLabelToViewport}
           regionLabelAutoLiftOffsetPx={regionLabelAutoLiftOffsetPx}
           invalidateRef={drawInvalidateRef}
           onDrawComplete={onDrawComplete}

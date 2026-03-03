@@ -173,7 +173,15 @@ export function resolveDrawAreaTooltipOptions(options: DrawAreaTooltipOptions | 
   };
 }
 
-export function drawRegionLabel(ctx: CanvasRenderingContext2D, text: string, anchor: DrawCoordinate, canvasWidth: number, canvasHeight: number, labelStyle: RegionLabelStyle): void {
+export function drawRegionLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  anchor: DrawCoordinate,
+  canvasWidth: number,
+  canvasHeight: number,
+  labelStyle: RegionLabelStyle,
+  clampToViewport = true
+): void {
   const label = text.trim();
   if (!label) return;
 
@@ -186,8 +194,10 @@ export function drawRegionLabel(ctx: CanvasRenderingContext2D, text: string, anc
   const boxWidth = textWidth + labelStyle.paddingX * 2;
   const boxHeight = labelStyle.fontSize + labelStyle.paddingY * 2;
 
-  const x = clamp(anchor[0], boxWidth * 0.5 + 1, canvasWidth - boxWidth * 0.5 - 1);
-  const y = clamp(anchor[1] - labelStyle.offsetY, boxHeight * 0.5 + 1, canvasHeight - boxHeight * 0.5 - 1);
+  const rawX = anchor[0];
+  const rawY = anchor[1] - labelStyle.offsetY;
+  const x = clampToViewport ? clamp(rawX, boxWidth * 0.5 + 1, canvasWidth - boxWidth * 0.5 - 1) : rawX;
+  const y = clampToViewport ? clamp(rawY, boxHeight * 0.5 + 1, canvasHeight - boxHeight * 0.5 - 1) : rawY;
   const left = x - boxWidth * 0.5;
   const top = y - boxHeight * 0.5;
 

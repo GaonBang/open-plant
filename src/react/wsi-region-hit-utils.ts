@@ -67,7 +67,8 @@ export function isScreenPointInsideLabel(
   renderer: WsiTileRenderer,
   labelStyle: RegionLabelStyle,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  clampToViewport: boolean
 ): boolean {
   if (!region.label || !region.labelAnchor) return false;
 
@@ -78,8 +79,10 @@ export function isScreenPointInsideLabel(
   const boxWidth = textWidth + labelStyle.paddingX * 2;
   const boxHeight = labelStyle.fontSize + labelStyle.paddingY * 2;
 
-  const x = clamp(anchorScreen[0], boxWidth * 0.5 + 1, canvasWidth - boxWidth * 0.5 - 1);
-  const y = clamp(anchorScreen[1] - labelStyle.offsetY, boxHeight * 0.5 + 1, canvasHeight - boxHeight * 0.5 - 1);
+  const rawX = anchorScreen[0];
+  const rawY = anchorScreen[1] - labelStyle.offsetY;
+  const x = clampToViewport ? clamp(rawX, boxWidth * 0.5 + 1, canvasWidth - boxWidth * 0.5 - 1) : rawX;
+  const y = clampToViewport ? clamp(rawY, boxHeight * 0.5 + 1, canvasHeight - boxHeight * 0.5 - 1) : rawY;
   const left = x - boxWidth * 0.5;
   const right = x + boxWidth * 0.5;
   const top = y - boxHeight * 0.5;
@@ -116,7 +119,8 @@ export function pickPreparedRegionAt(
   labelStyleResolver: RegionLabelStyleResolver | undefined,
   labelAutoLiftOffsetPx: number,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  clampRegionLabelToViewport = true
 ): {
   region: WsiRegion;
   regionIndex: number;
@@ -152,7 +156,7 @@ export function pickPreparedRegionAt(
         offsetY: dynamicLabelStyle.offsetY + labelAutoLiftOffset,
       };
     }
-    if (!isScreenPointInsideLabel(region, screenCoord, renderer, dynamicLabelStyle, canvasWidth, canvasHeight)) continue;
+    if (!isScreenPointInsideLabel(region, screenCoord, renderer, dynamicLabelStyle, canvasWidth, canvasHeight, clampRegionLabelToViewport)) continue;
     return {
       region: region.region,
       regionIndex: region.regionIndex,

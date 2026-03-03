@@ -175,6 +175,7 @@ export interface DrawLayerProps {
   regionLabelStyle?: Partial<RegionLabelStyle>;
   drawAreaTooltip?: DrawAreaTooltipOptions;
   autoLiftRegionLabelAtMaxZoom?: boolean;
+  clampRegionLabelToViewport?: boolean;
   regionLabelAutoLiftOffsetPx?: number;
   invalidateRef?: MutableRefObject<(() => void) | null>;
   className?: string;
