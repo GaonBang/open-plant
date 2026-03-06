@@ -291,56 +291,64 @@ export async function prefilterPointsByBoundsWebGpu(
 		usage: GPU_BUFFER_USAGE_COPY_DST | GPU_BUFFER_USAGE_MAP_READ,
 	});
 
-	ctx.device.queue.writeBuffer(
-		positionsBuffer,
-		0,
-		positions.buffer,
-		positions.byteOffset,
-		positionBytes,
-	);
-	ctx.device.queue.writeBuffer(
-		boundsBuffer,
-		0,
-		bounds.buffer,
-		bounds.byteOffset,
-		boundsBytes,
-	);
-	ctx.device.queue.writeBuffer(
-		uniformBuffer,
-		0,
-		new Uint32Array([safePointCount, boundsCount, 0, 0]),
-	);
+	let readBufferMapped = false;
+	try {
+		ctx.device.queue.writeBuffer(
+			positionsBuffer,
+			0,
+			positions.buffer,
+			positions.byteOffset,
+			positionBytes,
+		);
+		ctx.device.queue.writeBuffer(
+			boundsBuffer,
+			0,
+			bounds.buffer,
+			bounds.byteOffset,
+			boundsBytes,
+		);
+		ctx.device.queue.writeBuffer(
+			uniformBuffer,
+			0,
+			new Uint32Array([safePointCount, boundsCount, 0, 0]),
+		);
 
-	const bindGroup = ctx.device.createBindGroup({
-		layout: ctx.bindGroupLayout,
-		entries: [
-			{ binding: 0, resource: { buffer: positionsBuffer } },
-			{ binding: 1, resource: { buffer: boundsBuffer } },
-			{ binding: 2, resource: { buffer: outputBuffer } },
-			{ binding: 3, resource: { buffer: uniformBuffer } },
-		],
-	});
+		const bindGroup = ctx.device.createBindGroup({
+			layout: ctx.bindGroupLayout,
+			entries: [
+				{ binding: 0, resource: { buffer: positionsBuffer } },
+				{ binding: 1, resource: { buffer: boundsBuffer } },
+				{ binding: 2, resource: { buffer: outputBuffer } },
+				{ binding: 3, resource: { buffer: uniformBuffer } },
+			],
+		});
 
-	const commandEncoder = ctx.device.createCommandEncoder();
-	const pass = commandEncoder.beginComputePass();
-	pass.setPipeline(ctx.pipeline);
-	pass.setBindGroup(0, bindGroup);
-	pass.dispatchWorkgroups(Math.ceil(safePointCount / 256));
-	pass.end();
+		const commandEncoder = ctx.device.createCommandEncoder();
+		const pass = commandEncoder.beginComputePass();
+		pass.setPipeline(ctx.pipeline);
+		pass.setBindGroup(0, bindGroup);
+		pass.dispatchWorkgroups(Math.ceil(safePointCount / 256));
+		pass.end();
 
-	commandEncoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, outputBytes);
-	ctx.device.queue.submit([commandEncoder.finish()]);
+		commandEncoder.copyBufferToBuffer(outputBuffer, 0, readBuffer, 0, outputBytes);
+		ctx.device.queue.submit([commandEncoder.finish()]);
 
-	await readBuffer.mapAsync(GPU_MAP_MODE_READ);
-	const mapped = readBuffer.getMappedRange();
-	const out = new Uint32Array(mapped.slice(0));
-	readBuffer.unmap();
-
-	positionsBuffer.destroy();
-	boundsBuffer.destroy();
-	outputBuffer.destroy();
-	uniformBuffer.destroy();
-	readBuffer.destroy();
-
-	return out;
+		await readBuffer.mapAsync(GPU_MAP_MODE_READ);
+		readBufferMapped = true;
+		const mapped = readBuffer.getMappedRange();
+		return new Uint32Array(mapped.slice(0));
+	} finally {
+		if (readBufferMapped) {
+			try {
+				readBuffer.unmap();
+			} catch {
+				// Already unmapped or map failed after resolving.
+			}
+		}
+		positionsBuffer.destroy();
+		boundsBuffer.destroy();
+		outputBuffer.destroy();
+		uniformBuffer.destroy();
+		readBuffer.destroy();
+	}
 }

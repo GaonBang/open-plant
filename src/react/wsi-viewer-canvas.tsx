@@ -268,6 +268,9 @@ export function WsiViewerCanvas({
   const overviewInvalidateRef = useRef<(() => void) | null>(null);
   const onViewStateChangeRef = useRef<typeof onViewStateChange>(onViewStateChange);
   const onStatsRef = useRef<typeof onStats>(onStats);
+  const onTileErrorRef = useRef<typeof onTileError>(onTileError);
+  const onContextLostRef = useRef<typeof onContextLost>(onContextLost);
+  const onContextRestoredRef = useRef<typeof onContextRestored>(onContextRestored);
   const debugOverlayRef = useRef(debugOverlay);
   const [hoveredRegionId, setHoveredRegionId] = useState<string | number | null>(null);
   const [uncontrolledActiveRegionId, setUncontrolledActiveRegionId] = useState<string | number | null>(() => controlledActiveRegionId ?? null);
@@ -646,6 +649,18 @@ export function WsiViewerCanvas({
   }, [onStats]);
 
   useEffect(() => {
+    onTileErrorRef.current = onTileError;
+  }, [onTileError]);
+
+  useEffect(() => {
+    onContextLostRef.current = onContextLost;
+  }, [onContextLost]);
+
+  useEffect(() => {
+    onContextRestoredRef.current = onContextRestored;
+  }, [onContextRestored]);
+
+  useEffect(() => {
     debugOverlayRef.current = debugOverlay;
     if (!debugOverlay) setDebugStats(null);
   }, [debugOverlay]);
@@ -1006,9 +1021,15 @@ export function WsiViewerCanvas({
     const renderer = new WsiTileRenderer(canvas, source, {
       onViewStateChange: emitViewStateChange,
       onStats: handleRendererStats,
-      onTileError,
-      onContextLost,
-      onContextRestored,
+      onTileError: (event) => {
+        onTileErrorRef.current?.(event);
+      },
+      onContextLost: () => {
+        onContextLostRef.current?.();
+      },
+      onContextRestored: () => {
+        onContextRestoredRef.current?.();
+      },
       authToken,
       imageColorSettings,
       ctrlDragRotate,
@@ -1039,9 +1060,6 @@ export function WsiViewerCanvas({
   }, [
     source,
     handleRendererStats,
-    onTileError,
-    onContextLost,
-    onContextRestored,
     authToken,
     ctrlDragRotate,
     emitViewStateChange,

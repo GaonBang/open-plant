@@ -230,7 +230,7 @@ export class TileScheduler {
 		const earliestReadyAt = this.queue[0]?.readyAt;
 		if (typeof earliestReadyAt !== "number") return;
 		const delay = Math.max(0, earliestReadyAt - nowMs());
-		this.timerId = window.setTimeout(() => {
+		this.timerId = globalThis.setTimeout(() => {
 			this.timerId = null;
 			this.pump();
 		}, delay);
@@ -331,7 +331,7 @@ export class TileScheduler {
 
 	private clearPumpTimer(): void {
 		if (this.timerId === null) return;
-		window.clearTimeout(this.timerId);
+		globalThis.clearTimeout(this.timerId);
 		this.timerId = null;
 	}
 

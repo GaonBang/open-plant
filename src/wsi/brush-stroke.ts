@@ -173,20 +173,48 @@ type AnyCanvas2DContext =
 	| CanvasRenderingContext2D
 	| OffscreenCanvasRenderingContext2D;
 
-function createRasterContext(
+type AnyCanvas2D =
+	| HTMLCanvasElement
+	| OffscreenCanvas;
+
+interface RasterContextBundle {
+	canvas: AnyCanvas2D;
+	context: AnyCanvas2DContext;
+}
+
+let sharedRasterContext: RasterContextBundle | null = null;
+
+function resizeRasterCanvas(canvas: AnyCanvas2D, width: number, height: number): void {
+	if (canvas.width !== width) canvas.width = width;
+	if (canvas.height !== height) canvas.height = height;
+}
+
+function getRasterContext(
 	width: number,
 	height: number,
 ): AnyCanvas2DContext | null {
+	if (sharedRasterContext) {
+		resizeRasterCanvas(sharedRasterContext.canvas, width, height);
+		return sharedRasterContext.context;
+	}
+
 	if (typeof OffscreenCanvas !== "undefined") {
 		const canvas = new OffscreenCanvas(width, height);
 		const context = canvas.getContext("2d", { willReadFrequently: true });
-		if (context) return context;
+		if (context) {
+			sharedRasterContext = { canvas, context };
+			return context;
+		}
 	}
 	if (typeof document !== "undefined") {
 		const canvas = document.createElement("canvas");
 		canvas.width = width;
 		canvas.height = height;
-		return canvas.getContext("2d", { willReadFrequently: true });
+		const context = canvas.getContext("2d", { willReadFrequently: true });
+		if (context) {
+			sharedRasterContext = { canvas, context };
+			return context;
+		}
 	}
 	return null;
 }
@@ -206,7 +234,7 @@ function rasterizeStrokeMask(
 	radius: number,
 	config: RasterConfig,
 ): Uint8Array {
-	const context = createRasterContext(config.width, config.height);
+	const context = getRasterContext(config.width, config.height);
 	if (!context) return new Uint8Array(0);
 
 	context.clearRect(0, 0, config.width, config.height);

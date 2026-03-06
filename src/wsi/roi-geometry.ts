@@ -10,7 +10,10 @@ export function toRoiGeometry(coords: WsiRegionCoordinates | null | undefined): 
 export function toRoiGeometry(coords: unknown): RoiGeometry | null | undefined;
 export function toRoiGeometry(coords: unknown): RoiGeometry | null | undefined {
 	if (coords == null) return null;
-	return coords as RoiGeometry;
+	if (isLinearRing(coords) || isPolygonRings(coords) || isMultiPolygon(coords)) {
+		return coords;
+	}
+	return null;
 }
 
 export interface PreparedRoiPolygon {
@@ -108,28 +111,31 @@ function normalizePolygonRings(rings: RoiPolygonRings): RoiPolygonRings {
 }
 
 export function normalizeRoiGeometry(geometry: RoiGeometry | null | undefined): RoiMultiPolygon {
-	if (!geometry) return [];
+	if (!Array.isArray(geometry) || geometry.length === 0) return [];
 
-	if (isLinearRing(geometry)) {
-		const polygon = normalizePolygonRings([geometry]);
+	const first = geometry[0];
+	if (isCoordinatePair(first)) {
+		const polygon = normalizePolygonRings([geometry as RoiLinearRing]);
 		return polygon.length > 0 ? [polygon] : [];
 	}
 
-	if (isPolygonRings(geometry)) {
-		const polygon = normalizePolygonRings(geometry);
+	if (!Array.isArray(first) || first.length === 0) return [];
+	const second = first[0];
+	if (isCoordinatePair(second)) {
+		const polygon = normalizePolygonRings(geometry as RoiPolygonRings);
 		return polygon.length > 0 ? [polygon] : [];
 	}
 
-	if (isMultiPolygon(geometry)) {
-		const out: RoiMultiPolygon = [];
-		for (const polygon of geometry) {
-			const normalized = normalizePolygonRings(polygon);
-			if (normalized.length > 0) out.push(normalized);
-		}
-		return out;
+	if (!Array.isArray(second) || second.length === 0 || !isCoordinatePair(second[0])) {
+		return [];
 	}
 
-	return [];
+	const out: RoiMultiPolygon = [];
+	for (const polygon of geometry as RoiMultiPolygon) {
+		const normalized = normalizePolygonRings(polygon);
+		if (normalized.length > 0) out.push(normalized);
+	}
+	return out;
 }
 
 export function pointInRing(x: number, y: number, ring: RoiLinearRing): boolean {
@@ -139,9 +145,9 @@ export function pointInRing(x: number, y: number, ring: RoiLinearRing): boolean 
 		const yi = ring[i][1];
 		const xj = ring[j][0];
 		const yj = ring[j][1];
-		const intersect =
-			yi > y !== yj > y &&
-			x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+		if (yi === yj) continue;
+		if ((yi > y) === (yj > y)) continue;
+		const intersect = x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
 		if (intersect) inside = !inside;
 	}
 	return inside;

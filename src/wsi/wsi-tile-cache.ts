@@ -6,15 +6,19 @@ import type {
 export function trimTileCache(options: TileCacheTrimOptions): void {
   const { gl, cache, maxCacheTiles } = options;
   if (cache.size <= maxCacheTiles) return;
-
-  const entries = Array.from(cache.entries());
-  entries.sort((a, b) => a[1].lastUsed - b[1].lastUsed);
-
-  const removeCount = cache.size - maxCacheTiles;
-  for (let i = 0; i < removeCount; i += 1) {
-    const [key, value] = entries[i];
-    gl.deleteTexture(value.texture);
-    cache.delete(key);
+  const targetSize = Math.max(0, Math.floor(maxCacheTiles));
+  while (cache.size > targetSize) {
+    let oldestKey: string | null = null;
+    let oldestValue: { texture: WebGLTexture; lastUsed: number } | null = null;
+    for (const [key, value] of cache) {
+      if (!oldestValue || value.lastUsed < oldestValue.lastUsed) {
+        oldestKey = key;
+        oldestValue = value;
+      }
+    }
+    if (!oldestKey || !oldestValue) break;
+    gl.deleteTexture(oldestValue.texture);
+    cache.delete(oldestKey);
   }
 }
 

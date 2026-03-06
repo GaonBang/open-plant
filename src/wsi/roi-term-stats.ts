@@ -31,6 +31,10 @@ interface PreparedRegion {
   regionIndex: number;
   polygons: PreparedRoiPolygon[];
   area: number;
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
 }
 
 function prepareRegions(regions: readonly WsiRegion[]): PreparedRegion[] {
@@ -41,18 +45,115 @@ function prepareRegions(regions: readonly WsiRegion[]): PreparedRegion[] {
     if (polygons.length === 0) continue;
 
     let area = 0;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
     for (const polygon of polygons) {
       area += polygon.area;
+      if (polygon.minX < minX) minX = polygon.minX;
+      if (polygon.minY < minY) minY = polygon.minY;
+      if (polygon.maxX > maxX) maxX = polygon.maxX;
+      if (polygon.maxY > maxY) maxY = polygon.maxY;
     }
+    if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) continue;
 
     prepared.push({
       regionId: region.id ?? i,
       regionIndex: i,
       polygons,
       area: Math.max(1e-6, area),
+      minX,
+      minY,
+      maxX,
+      maxY,
     });
   }
   return prepared;
+}
+
+interface PreparedRegionGridIndex {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  gridSize: number;
+  cellWidth: number;
+  cellHeight: number;
+  buckets: number[][];
+}
+
+const MAX_REGION_GRID_SIZE = 128;
+const EMPTY_CANDIDATE_REGION_INDICES: number[] = [];
+
+function toGridCell(value: number, min: number, max: number, cellSize: number, gridSize: number): number {
+  if (gridSize <= 1 || max <= min) return 0;
+  const ratio = (value - min) / cellSize;
+  if (!Number.isFinite(ratio) || ratio <= 0) return 0;
+  if (ratio >= gridSize - 1) return gridSize - 1;
+  return Math.floor(ratio);
+}
+
+function buildPreparedRegionGridIndex(regions: readonly PreparedRegion[]): PreparedRegionGridIndex | null {
+  if (regions.length === 0) return null;
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const region of regions) {
+    if (region.minX < minX) minX = region.minX;
+    if (region.minY < minY) minY = region.minY;
+    if (region.maxX > maxX) maxX = region.maxX;
+    if (region.maxY > maxY) maxY = region.maxY;
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    return null;
+  }
+
+  const estimated = Math.ceil(Math.sqrt(regions.length * 2));
+  const gridSize = Math.max(1, Math.min(MAX_REGION_GRID_SIZE, estimated));
+  const cellWidth = maxX > minX ? (maxX - minX) / gridSize : 1;
+  const cellHeight = maxY > minY ? (maxY - minY) / gridSize : 1;
+  const buckets = Array.from({ length: gridSize * gridSize }, () => [] as number[]);
+
+  for (let regionArrayIndex = 0; regionArrayIndex < regions.length; regionArrayIndex += 1) {
+    const region = regions[regionArrayIndex];
+    const minCellX = toGridCell(region.minX, minX, maxX, cellWidth, gridSize);
+    const maxCellX = toGridCell(region.maxX, minX, maxX, cellWidth, gridSize);
+    const minCellY = toGridCell(region.minY, minY, maxY, cellHeight, gridSize);
+    const maxCellY = toGridCell(region.maxY, minY, maxY, cellHeight, gridSize);
+    for (let cellY = minCellY; cellY <= maxCellY; cellY += 1) {
+      for (let cellX = minCellX; cellX <= maxCellX; cellX += 1) {
+        buckets[cellY * gridSize + cellX].push(regionArrayIndex);
+      }
+    }
+  }
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    gridSize,
+    cellWidth,
+    cellHeight,
+    buckets,
+  };
+}
+
+function getCandidateRegionIndices(
+  index: PreparedRegionGridIndex | null,
+  x: number,
+  y: number,
+): readonly number[] {
+  if (!index) return EMPTY_CANDIDATE_REGION_INDICES;
+  if (x < index.minX || x > index.maxX || y < index.minY || y > index.maxY) {
+    return EMPTY_CANDIDATE_REGION_INDICES;
+  }
+  const cellX = toGridCell(x, index.minX, index.maxX, index.cellWidth, index.gridSize);
+  const cellY = toGridCell(y, index.minY, index.maxY, index.cellHeight, index.gridSize);
+  return index.buckets[cellY * index.gridSize + cellX] ?? EMPTY_CANDIDATE_REGION_INDICES;
 }
 
 function resolveTermId(paletteIndex: number, paletteIndexToTermId: RoiPointGroupOptions["paletteIndexToTermId"]): string {
@@ -118,15 +219,20 @@ export function computeRoiPointGroups(pointData: WsiPointData | null | undefined
 
   const regionTermCounters = new Map<number, Map<number, number>>();
   const regionTotalCounters = new Map<number, number>();
+  const preparedRegionIndex = buildPreparedRegionGridIndex(preparedRegions);
   let insideCount = 0;
 
   for (let i = 0; i < inputCount; i += 1) {
     const pointIndex = drawIndices ? drawIndices[i] : i;
     const x = pointData.positions[pointIndex * 2];
     const y = pointData.positions[pointIndex * 2 + 1];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
     let bestRegion: PreparedRegion | null = null;
+    const candidateRegionIndices = getCandidateRegionIndices(preparedRegionIndex, x, y);
+    if (candidateRegionIndices.length === 0) continue;
 
-    for (const region of preparedRegions) {
+    for (const regionArrayIndex of candidateRegionIndices) {
+      const region = preparedRegions[regionArrayIndex];
       let inside = false;
       for (const polygon of region.polygons) {
         if (!pointInPreparedPolygon(x, y, polygon)) continue;

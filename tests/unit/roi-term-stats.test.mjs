@@ -120,3 +120,47 @@ test("computeRoiPointGroups: clamps count by fillModes length", () => {
   assert.equal(stats.pointsInsideAnyRegion, 3);
   assert.equal(stats.unmatchedPointCount, 0);
 });
+
+test("computeRoiPointGroups: prefers the smallest containing region when regions overlap", () => {
+  const stats = computeRoiPointGroups(
+    {
+      count: 2,
+      positions: new Float32Array([
+        3, 3, // inside both regions
+        8, 8, // inside only large region
+      ]),
+      paletteIndices: new Uint16Array([5, 6]),
+    },
+    [
+      {
+        id: "large",
+        coordinates: [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+        ],
+      },
+      {
+        id: "small",
+        coordinates: [
+          [2, 2],
+          [4, 2],
+          [4, 4],
+          [2, 4],
+        ],
+      },
+    ]
+  );
+
+  assert.equal(stats.inputPointCount, 2);
+  assert.equal(stats.pointsInsideAnyRegion, 2);
+  assert.equal(stats.unmatchedPointCount, 0);
+  assert.equal(stats.groups.length, 2);
+
+  const groupById = new Map(stats.groups.map(group => [group.regionId, group]));
+  assert.equal(groupById.get("large")?.totalCount, 1);
+  assert.equal(groupById.get("large")?.termCounts[0]?.paletteIndex, 6);
+  assert.equal(groupById.get("small")?.totalCount, 1);
+  assert.equal(groupById.get("small")?.termCounts[0]?.paletteIndex, 5);
+});
