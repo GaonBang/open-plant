@@ -87,6 +87,8 @@ export {
   lookupCellIndex,
   terminatePointHitIndexWorker,
 } from "./wsi/point-hit-index-worker-client";
+export type { SpatialExtent, SpatialIndex, SpatialIndexItem } from "./wsi/spatial-index";
+export { createSpatialIndex } from "./wsi/spatial-index";
 export type {
   PointHitIndexWorkerFailure,
   PointHitIndexWorkerRequest,
@@ -100,6 +102,8 @@ export type {
   RoiTermCount,
 } from "./wsi/roi-term-stats";
 export { computeRoiPointGroups } from "./wsi/roi-term-stats";
+export type { ParsedWktGeometry, ParsedWktMultiPolygon, ParsedWktPolygon } from "./wsi/wkt";
+export { parseWkt } from "./wsi/wkt";
 export type {
   ScheduledTile,
   TileBounds,
