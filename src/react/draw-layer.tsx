@@ -14,7 +14,6 @@ import {
 import { drawOverlayShapes } from "./draw-layer-overlay";
 import { buildStampCoords, isStampTool, resolveStampOptions } from "./draw-layer-stamp";
 import {
-  BRUSH_RASTER_DIAMETER_SAMPLES,
   BRUSH_SCREEN_STEP,
   DEFAULT_DRAW_PREVIEW_FILL,
   DEFAULT_PATCH_STROKE_STYLE,
@@ -28,7 +27,6 @@ import {
   FREEHAND_SCREEN_STEP,
   MICRONS_PER_MM,
   MIN_AREA_PX,
-  MIN_BRUSH_RASTER_STEP,
   type PreparedRenderedRegion,
   REGION_INTERACTION_SHADOW_COLOR,
   REGION_INTERACTION_SHADOW_WIDTH,
@@ -69,8 +67,8 @@ export type {
   DrawResult,
   DrawTool,
   PatchDrawResult,
-  RegionLabelStyle,
   RegionLabelAnchorMode,
+  RegionLabelStyle,
   RegionLabelStyleContext,
   RegionLabelStyleResolver,
   RegionStrokeStyle,
@@ -626,14 +624,13 @@ export function DrawLayer({
         requestDraw();
         return;
       }
-      const edgeDetail = resolvedBrushOptions.edgeDetail;
-      const minRasterStep = Math.max(MIN_BRUSH_RASTER_STEP, (resolvedBrushOptions.radius * 2) / (BRUSH_RASTER_DIAMETER_SAMPLES * edgeDetail));
+      const edgeDetail = Math.max(0.25, resolvedBrushOptions.edgeDetail);
       const screenPath = session.screenPoints.length > 0 ? session.screenPoints : worldToScreenPoints(session.points);
+      const simplifyTolerance = Math.max(0.5, (resolvedBrushOptions.radius * 0.04) / edgeDetail);
       const screenPolygon = buildBrushStrokePolygon(screenPath, {
         radius: resolvedBrushOptions.radius,
-        minRasterStep,
-        circleSides: Math.max(24, Math.round(64 * edgeDetail)),
-        simplifyTolerance: minRasterStep * 0.25,
+        circleSides: Math.max(16, Math.round(32 * edgeDetail)),
+        simplifyTolerance,
         smoothingPasses: resolvedBrushOptions.edgeSmoothing,
       }) as import("./draw-layer-types").DrawCoordinate[];
       const worldPolygon: import("./draw-layer-types").DrawCoordinate[] = [];
@@ -693,26 +690,30 @@ export function DrawLayer({
     [buildStampCoordsCallback, onDrawComplete, onPatchComplete]
   );
 
-  const appendBrushPoint = useCallback((session: DrawSession, world: import("./draw-layer-types").DrawCoordinate, screen: import("./draw-layer-types").DrawCoordinate): void => {
-    const minScreenStep2 = BRUSH_SCREEN_STEP * BRUSH_SCREEN_STEP;
-    const prevScreen = session.screenPoints[session.screenPoints.length - 1];
-    if (!prevScreen) {
-      session.points.push(world);
-      session.screenPoints.push(screen);
+  const appendBrushPoint = useCallback(
+    (session: DrawSession, world: import("./draw-layer-types").DrawCoordinate, screen: import("./draw-layer-types").DrawCoordinate): void => {
+      const minScreenStep = Math.max(BRUSH_SCREEN_STEP, resolvedBrushOptions.radius * 0.1);
+      const minScreenStep2 = minScreenStep * minScreenStep;
+      const prevScreen = session.screenPoints[session.screenPoints.length - 1];
+      if (!prevScreen) {
+        session.points.push(world);
+        session.screenPoints.push(screen);
+        session.current = world;
+        return;
+      }
+      const dx = screen[0] - prevScreen[0];
+      const dy = screen[1] - prevScreen[1];
+      if (dx * dx + dy * dy >= minScreenStep2) {
+        session.points.push(world);
+        session.screenPoints.push(screen);
+      } else {
+        session.points[session.points.length - 1] = world;
+        session.screenPoints[session.screenPoints.length - 1] = screen;
+      }
       session.current = world;
-      return;
-    }
-    const dx = screen[0] - prevScreen[0];
-    const dy = screen[1] - prevScreen[1];
-    if (dx * dx + dy * dy >= minScreenStep2) {
-      session.points.push(world);
-      session.screenPoints.push(screen);
-    } else {
-      session.points[session.points.length - 1] = world;
-      session.screenPoints[session.screenPoints.length - 1] = screen;
-    }
-    session.current = world;
-  }, []);
+    },
+    [resolvedBrushOptions.radius]
+  );
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
