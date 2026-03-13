@@ -78,10 +78,13 @@
                 <tr><td><code>minZoom</code></td><td><code>number</code></td><td>최소 줌 override. 미지정 시 <code>fitZoom * 0.5</code>. wheel/double-click/<code>setViewState</code>/<code>fitToImage</code> 경로 모두 적용.</td></tr>
                 <tr><td><code>maxZoom</code></td><td><code>number</code></td><td>최대 줌 override. 미지정 시 <code>fitZoom * 8</code>.</td></tr>
                 <tr><td><code>viewTransition</code></td><td><code>{ duration?: number; easing?: (t) =&gt; number }</code></td><td>기본 카메라 전환 애니메이션. duration은 <code>0..2000ms</code>로 clamp됩니다.</td></tr>
+                <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>배율 스냅 단계 목록(예: <code>[1.25, 2.5, 5, 10, 20, 40]</code>). 내부적으로 <code>source.mpp</code> 기준 zoom 값으로 정규화됩니다.</td></tr>
+                <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>true면 snap-out 시 fit zoom을 하한으로 취급합니다.</td></tr>
                 <tr><td><code>pointData</code></td><td><code>WsiPointData | null</code></td><td>포인트 위치 + 팔레트 인덱스 버퍼(<code>ids</code>로 hit-test 지원).</td></tr>
                 <tr><td><code>pointPalette</code></td><td><code>Uint8Array | null</code></td><td>RGBA palette texture 데이터.</td></tr>
                 <tr><td><code>pointSizeByZoom</code></td><td><code>Record&lt;number, number&gt;</code></td><td>continuous zoom 기준 point 크기(px) stop. stop 사이는 선형 보간.</td></tr>
                 <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>point ring 두께 스케일.</td></tr>
+                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>point 내부 채움 불투명도 (<code>0..1</code>).</td></tr>
                 <tr><td><code>roiRegions</code></td><td><code>WsiRegion[]</code></td><td>영속 ROI 목록(라벨 포함).</td></tr>
                 <tr><td><code>roiPolygons</code></td><td><code>DrawCoordinate[][]</code></td><td>간소화 ROI 입력.</td></tr>
                 <tr><td><code>clipPointsToRois</code></td><td><code>boolean</code></td><td>ROI 외부 포인트 제거.</td></tr>
@@ -104,8 +107,10 @@
                 <tr><td><code>overlayShapes</code></td><td><code>DrawOverlayShape[]</code></td><td>DrawLayer 커스텀 오버레이 도형(폴리곤 stroke + 반전 마스크 지원).</td></tr>
                 <tr><td><code>customLayers</code></td><td><code>WsiCustomLayer[]</code></td><td>world/screen 변환기를 받는 커스텀 React 오버레이 레이어 슬롯.</td></tr>
                 <tr><td><code>regionLabelStyle</code></td><td><code>Partial&lt;RegionLabelStyle&gt;</code></td><td>영속 region 라벨 스타일 override.</td></tr>
+                <tr><td><code>regionLabelAnchor</code></td><td><code>"top-center" | "centroid"</code></td><td>라벨 배치/히트 영역에 쓰이는 anchor 모드.</td></tr>
                 <tr><td><code>drawAreaTooltip</code></td><td><code>DrawAreaTooltipOptions</code></td><td>freehand/rectangle/circular draw 중 실시간 mm² tooltip.</td></tr>
                 <tr><td><code>autoLiftRegionLabelAtMaxZoom</code></td><td><code>boolean</code></td><td><code>maxZoom</code> 도달 시 라벨을 20px 위로 애니메이션 이동하고, 이탈 시 복귀.</td></tr>
+                <tr><td><code>clampRegionLabelToViewport</code></td><td><code>boolean</code></td><td>region 라벨을 뷰포트 경계 안으로 clamp합니다.</td></tr>
                 <tr><td><code>onPointerWorldMove</code></td><td><code>(event) =&gt; void</code></td><td>월드 좌표 포인터 스트림 콜백.</td></tr>
                 <tr><td><code>onPointHover</code></td><td><code>(event) =&gt; void</code></td><td>cursor 모드에서 nearest point hover 이벤트. 미히트 시 <code>index/id</code>는 <code>null</code>.</td></tr>
                 <tr><td><code>onPointClick</code></td><td><code>(event) =&gt; void</code></td><td>cursor 모드에서 nearest point 클릭 이벤트(버튼 정보 포함).</td></tr>

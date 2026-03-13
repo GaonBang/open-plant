@@ -42,7 +42,15 @@ python3 -m http.server 4173
   - `docs/en/draw-and-roi.html`
   - `docs/ko/draw-and-roi.html`
   - 필요 시 `docs/en/architecture.html`, `docs/ko/architecture.html`
+- 카메라/줌 동작 변경(`min/maxZoom`, `viewTransition`, `zoomSnaps` 등) 시:
+  - `docs/en/api-reference.html`
+  - `docs/ko/api-reference.html`
+  - `docs/en/getting-started.html`
+  - `docs/ko/getting-started.html`
 - 뷰어 기본 설정/빠른 시작 흐름 변경 시:
   - `docs/en/getting-started.html`
   - `docs/ko/getting-started.html`
+- 릴리스 노트 동기화:
+  - `CHANGELOG.md` (`Unreleased` 포함)
+  - `README.md` (Features / API 섹션)
 - EN/KO 페이지는 기능 단위로 동등한 정보가 유지되어야 합니다.

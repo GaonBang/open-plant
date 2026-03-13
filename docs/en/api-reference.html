@@ -73,10 +73,13 @@
                 <tr><td><code>minZoom</code></td><td><code>number</code></td><td>Minimum zoom override. If omitted, renderer uses <code>fitZoom * 0.5</code>. Applied to wheel, double-click, <code>setViewState</code>, and <code>fitToImage</code>.</td></tr>
                 <tr><td><code>maxZoom</code></td><td><code>number</code></td><td>Maximum zoom override. If omitted, renderer uses <code>fitZoom * 8</code>.</td></tr>
                 <tr><td><code>viewTransition</code></td><td><code>{ duration?: number; easing?: (t) =&gt; number }</code></td><td>Default camera transition for view updates. Duration is clamped to <code>0..2000ms</code>.</td></tr>
+                <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>Magnification snap stops (for example <code>[1.25, 2.5, 5, 10, 20, 40]</code>). Internally normalized with <code>source.mpp</code>.</td></tr>
+                <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>If true, snap-out treats fit zoom as the lower bound.</td></tr>
                 <tr><td><code>pointData</code></td><td><code>WsiPointData | null</code></td><td>Point position + palette index buffers (optional <code>ids</code> supported for point hit-test).</td></tr>
                 <tr><td><code>pointPalette</code></td><td><code>Uint8Array | null</code></td><td>RGBA palette texture data.</td></tr>
                 <tr><td><code>pointSizeByZoom</code></td><td><code>Record&lt;number, number&gt;</code></td><td>Custom point size(px) stops by continuous zoom level. Values between stops are linearly interpolated.</td></tr>
                 <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>Point ring stroke thickness scale.</td></tr>
+                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>Point inner fill opacity in range <code>0..1</code>.</td></tr>
                 <tr><td><code>roiRegions</code></td><td><code>WsiRegion[]</code></td><td>Persisted ROI list with labels.</td></tr>
                 <tr><td><code>roiPolygons</code></td><td><code>DrawCoordinate[][]</code></td><td>Simplified polygon-only ROI input.</td></tr>
                 <tr><td><code>clipPointsToRois</code></td><td><code>boolean</code></td><td>Render only points inside ROI polygons.</td></tr>
@@ -99,8 +102,10 @@
                 <tr><td><code>overlayShapes</code></td><td><code>DrawOverlayShape[]</code></td><td>Custom overlay shapes rendered by DrawLayer (supports polygon stroke and inverted-fill mask).</td></tr>
                 <tr><td><code>customLayers</code></td><td><code>WsiCustomLayer[]</code></td><td>Custom React overlay layer slots with world/screen converters and redraw trigger.</td></tr>
                 <tr><td><code>regionLabelStyle</code></td><td><code>Partial&lt;RegionLabelStyle&gt;</code></td><td>Persisted region label override.</td></tr>
+                <tr><td><code>regionLabelAnchor</code></td><td><code>"top-center" | "centroid"</code></td><td>Label anchor mode used for hit area and placement.</td></tr>
                 <tr><td><code>drawAreaTooltip</code></td><td><code>DrawAreaTooltipOptions</code></td><td>Realtime mm² tooltip during freehand/rectangle/circular drawing.</td></tr>
                 <tr><td><code>autoLiftRegionLabelAtMaxZoom</code></td><td><code>boolean</code></td><td>When true, labels animate upward by 20px when view reaches <code>maxZoom</code> and animate back when leaving max zoom.</td></tr>
+                <tr><td><code>clampRegionLabelToViewport</code></td><td><code>boolean</code></td><td>Clamps region labels to viewport bounds.</td></tr>
                 <tr><td><code>onPointerWorldMove</code></td><td><code>(event) =&gt; void</code></td><td>World-coordinate pointer stream callback for custom coordinate HUD.</td></tr>
                 <tr><td><code>onPointHover</code></td><td><code>(event) =&gt; void</code></td><td>Nearest point hover event in cursor mode. Emits <code>index/id</code> or <code>null</code> when no hit.</td></tr>
                 <tr><td><code>onPointClick</code></td><td><code>(event) =&gt; void</code></td><td>Nearest point click event in cursor mode (left/right button info included).</td></tr>

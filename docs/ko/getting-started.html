@@ -134,6 +134,14 @@ function Viewer({ source, token }) {
             <p>
               색상 보정은 타일 셰이더에만 적용됩니다. point/cell marker, ROI, draw overlay 색상은 변경되지 않습니다.
             </p>
+            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+  source={source}
+  zoomSnaps={[1.25, 2.5, 5, 10, 20, 40]}
+  zoomSnapFitAsMin
+/&gt;</code></pre>
+            <p>
+              <code>zoomSnaps</code>는 배율 단계이며, 내부적으로 <code>source.mpp</code> 기준 zoom 값으로 정규화됩니다.
+            </p>
           </section>
 
           <section class="panel reveal" id="points">

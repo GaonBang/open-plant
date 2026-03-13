@@ -124,6 +124,14 @@ function Viewer({ source, token }) {
             <p>
               Color settings are applied to the tile shader only. Point/cell markers, ROI, and draw overlay keep original colors.
             </p>
+            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+  source={source}
+  zoomSnaps={[1.25, 2.5, 5, 10, 20, 40]}
+  zoomSnapFitAsMin
+/&gt;</code></pre>
+            <p>
+              <code>zoomSnaps</code> values are magnification steps. They are normalized with <code>source.mpp</code>.
+            </p>
           </section>
 
           <section class="panel reveal" id="points">

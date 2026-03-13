@@ -13,6 +13,8 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `buildPointSpatialIndexAsync()`, `lookupCellIndex()`, `terminatePointHitIndexWorker()` public API.
 - 인접 tier (T±1) 타일 prefetch: 빠른 줌 시 blank frame 감소.
 - `getVisibleTilesForTier(tier)` public method on `WsiTileRenderer`.
+- 배율 스냅 줌 API: `zoomSnaps`, `zoomSnapFitAsMin` (`WsiViewerCanvas`/`WsiTileRenderer`).
+- `WsiTileRenderer.getViewBounds()` public method.
 - 최적화 리포트: `perf-optimization-report.md`.
 
 ### Changed
@@ -22,10 +24,14 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `getCellByCoordinates` 내부 lookup: nested `Map.get()` → `Int32Array` hash table O(1).
 - 타일 스케줄링: 현재 tier 외 인접 tier 타일을 `distance2` 페널티 기반 낮은 우선순위로 포함.
 - 내부 perf logging (`logPerf`, `shouldLogPerf`, `PERF_LOG_*`) 제거.
+- Overview map viewport 인디케이터 렌더 경로 개선: `getViewBounds`가 없어도 `getViewCorners`만으로 현재 뷰포트 표시 가능.
+- Overview map 기본 viewport border 색상을 고대비 주황 계열로 조정.
 
 ### Docs
 - `performance-optimization.md` 업데이트: 워커 인덱스, prefetch, flat hash 내용 추가.
 - `README.md` 프로젝트 구조: 워커/클라이언트 파일 반영.
+- `README.md` API/props 섹션을 현재 export/동작 기준으로 정리(중복 제거 포함).
+- EN/KO API reference와 Getting Started에 `zoomSnaps`, `zoomSnapFitAsMin`, `pointInnerFillOpacity`, `regionLabelAnchor`, `clampRegionLabelToViewport` 반영.
 
 ## [1.2.4] - 2026-02-25
 
