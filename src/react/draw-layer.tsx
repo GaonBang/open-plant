@@ -76,6 +76,8 @@ export type {
   RegionStyleContext,
   StampDrawTool,
   StampOptions,
+  StampShape,
+  StampToolConfig,
 } from "./draw-layer-types";
 export { closeRing, createCircle, createRectangle } from "./draw-layer-utils";
 

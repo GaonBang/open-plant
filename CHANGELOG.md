@@ -7,7 +7,22 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-03-16
+
 ### Added
+- **선언적 레이어 컴포지션 API**: `WsiViewer` + 자식 레이어 컴포넌트로 관심사 분리.
+  - `WsiViewer`: Context Provider + WebGL 캔버스 관리 (~15개 core props).
+  - `PointLayer`: 포인트 렌더링, 클리핑, 히트 테스트 캡슐화.
+  - `RegionLayer`: ROI 리전 렌더링, 라벨, hover/active 상태 관리.
+  - `DrawingLayer`: 드로잉 도구 (freehand, rectangle, circular, stamp, brush).
+  - `PatchLayer`: 패치 리전 렌더링.
+  - `OverlayLayer`: 오버레이 셰이프 렌더링.
+- `ViewerContext` + `useViewerContext()`: 레이어 간 `rendererRef`, 좌표 변환, draw registry 공유.
+- `PointQueryHandle` + `forwardRef` 패턴: `getCellByCoordinatesRef`를 대체하는 `PointLayer` imperative handle.
+- `DrawTool` 타입 확장: `"eraser"`, `"region-brush"`, `"region-eraser"` 문자열 리터럴 추가.
+- `StampToolConfig` 구조화 타입: `{ stamp: { shape: "circle", areaMm2: 0.2 } }` — 매직 스트링 대체.
+- `StampShape` 타입: `"rectangle" | "circle"`.
+- `RegionLayerProps.labelStyle`: `Partial<RegionLabelStyle> | RegionLabelStyleResolver` 통합 prop.
 - Web Worker 기반 포인트 공간 인덱스 빌드 (`point-hit-index-worker`). 메인 스레드 ~175ms 블로킹 제거.
 - `FlatPointSpatialIndex` flat typed array 자료구조 + open-addressing hash table lookup.
 - `buildPointSpatialIndexAsync()`, `lookupCellIndex()`, `terminatePointHitIndexWorker()` public API.
@@ -18,6 +33,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - 최적화 리포트: `perf-optimization-report.md`.
 
 ### Changed
+- `WsiViewerCanvasProps`에 `@deprecated` JSDoc 추가. 기존 인터페이스는 동일하게 유지.
 - `pointHitIndex` 빌드가 `useMemo` (동기) → `useEffect` + `useState` (비동기 워커)로 전환.
 - 워커 인덱스 알고리즘: nested `Map` → 4-pass counting sort (GC-free, typed arrays only).
 - 워커 프로토콜: positions/ids를 워커가 반환하지 않음 — 메인 스레드가 원본 참조 (전송량 ~120MB → ~48MB).

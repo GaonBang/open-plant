@@ -97,6 +97,10 @@ export interface OverviewMapConfig {
   style?: CSSProperties;
 }
 
+/**
+ * @deprecated Use `<WsiViewer>` with layer composition (`<PointLayer>`, `<RegionLayer>`, `<DrawingLayer>`, etc.) instead.
+ * This monolithic interface will be removed in a future major version.
+ */
 export interface WsiViewerCanvasProps {
   source: WsiImageSource | null;
   viewState?: Partial<WsiViewState> | null;
