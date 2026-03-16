@@ -36,6 +36,7 @@ v1.4.0은 **breaking change가 없는 minor 릴리스**입니다. 기존 `WsiVie
 | `viewTransition` | `viewTransition` | |
 | `zoomSnaps` | `zoomSnaps` | |
 | `zoomSnapFitAsMin` | `zoomSnapFitAsMin` | |
+| `onPointerWorldMove` | `onPointerWorldMove` | |
 | `pointSizeByZoom` | `pointSizeByZoom` | 초기값으로 사용됨. PointLayer에서도 설정 가능 |
 | `pointStrokeScale` | `pointStrokeScale` | 〃 |
 | `pointInnerFillOpacity` | `pointInnerFillOpacity` | 〃 |
@@ -116,7 +117,6 @@ v1.4.0은 **breaking change가 없는 minor 릴리스**입니다. 기존 `WsiVie
 
 | 기존 prop | 상태 |
 |---|---|
-| `onPointerWorldMove` | WsiViewer에 미구현 |
 | `customLayers` | WsiViewer에 미구현 |
 | `onRoiPointGroups` | 대응 레이어 없음 |
 | `roiPaletteIndexToTermId` | 대응 레이어 없음 |
@@ -543,4 +543,4 @@ function MyCustomOverlay() {
 - [ ] `overviewMapConfig` 3단 중첩 → `OverviewMap` 컴포넌트 flat props로 변경
 - [ ] (선택) `DrawTool` 매직 스트링 stamp → 구조화 `{ stamp: StampToolConfig }` 전환
 - [ ] (선택) `DrawTool` 매핑에서 `"eraser"`, `"region-brush"`, `"region-eraser"` 활용
-- [ ] `onPointerWorldMove`, `customLayers`, `onRoiPointGroups`, `roiPaletteIndexToTermId` 사용 시 `WsiViewerCanvas` 유지 확인
+- [ ] `customLayers`, `onRoiPointGroups`, `roiPaletteIndexToTermId` 사용 시 `WsiViewerCanvas` 유지 확인

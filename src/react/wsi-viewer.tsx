@@ -6,6 +6,7 @@ import type { DrawCoordinate } from "./draw-layer-types";
 import { toDrawCoordinate } from "./draw-layer-utils";
 import type { OverlayDrawFn, ViewerContextValue } from "./viewer-context";
 import { ViewerContextProvider } from "./viewer-context";
+import type { PointerWorldMoveEvent } from "./wsi-viewer-canvas-types";
 
 export interface WsiViewerProps {
   source: WsiImageSource | null;
@@ -28,6 +29,7 @@ export interface WsiViewerProps {
   pointSizeByZoom?: PointSizeByZoom;
   pointStrokeScale?: number;
   pointInnerFillOpacity?: number;
+  onPointerWorldMove?: (event: PointerWorldMoveEvent) => void;
   debugOverlay?: boolean;
   debugOverlayStyle?: CSSProperties;
   className?: string;
@@ -64,6 +66,7 @@ export function WsiViewer({
   pointSizeByZoom,
   pointStrokeScale,
   pointInnerFillOpacity,
+  onPointerWorldMove,
   debugOverlay = false,
   debugOverlayStyle,
   className,
@@ -359,11 +362,31 @@ export function WsiViewer({
     [source, worldToScreen, screenToWorld, registerDrawCallback, unregisterDrawCallback, requestOverlayRedraw, setInteractionLock, isInteractionLocked]
   );
 
+  const onPointerWorldMoveRef = useRef(onPointerWorldMove);
+  useEffect(() => {
+    onPointerWorldMoveRef.current = onPointerWorldMove;
+  }, [onPointerWorldMove]);
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const cb = onPointerWorldMoveRef.current;
+      if (!cb) return;
+      const coord = screenToWorld(e.clientX, e.clientY);
+      const insideImage = !!coord && coord[0] >= 0 && coord[1] >= 0 && !!source && coord[0] <= source.width && coord[1] <= source.height;
+      cb({ coordinate: coord, clientX: e.clientX, clientY: e.clientY, insideImage });
+    },
+    [screenToWorld, source],
+  );
+
+  const handlePointerLeave = useCallback(() => {
+    onPointerWorldMoveRef.current?.({ coordinate: null, clientX: -1, clientY: -1, insideImage: false });
+  }, []);
+
   const cursorStyle = isInteractionLocked() ? "crosshair" : "grab";
 
   return (
     <ViewerContextProvider value={contextValue}>
-      <div className={className} style={mergedStyle}>
+      <div className={className} style={mergedStyle} onPointerMove={onPointerWorldMove ? handlePointerMove : undefined} onPointerLeave={onPointerWorldMove ? handlePointerLeave : undefined}>
         <canvas
           ref={canvasRef}
           className="wsi-render-canvas"
