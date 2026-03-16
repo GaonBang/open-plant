@@ -57,6 +57,25 @@
 
           <section class="panel reveal" id="runtime">
             <h2>런타임 구성</h2>
+            <h3>v1.4.0 — 컴포지션 API</h3>
+            <pre><code class="language-txt">React
+ └─ WsiViewer (ViewerContext provider)
+    ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
+    │  ├─ Tile pass
+    │  └─ Point pass (PointLayer가 데이터 등록)
+    ├─ 2D Overlay Canvas (공유 draw registry)
+    │  ├─ RegionLayer draws (priority 10)
+    │  ├─ PatchLayer draws (priority 20)
+    │  ├─ OverlayLayer draws (priority 30)
+    │  └─ RegionLayer labels (priority 50)
+    ├─ DrawingLayer → DrawLayer (pointer capture, preview)
+    └─ OverviewMap (선택적 자식)</code></pre>
+            <p>
+              각 레이어 컴포넌트는 <code>registerDrawCallback(id, priority, fn)</code>으로 공유 오버레이 캔버스에 그립니다.
+              레이어당 추가 캔버스가 생성되지 않으며, <code>WsiViewer</code>가 단일 <code>requestAnimationFrame</code> 패스에서
+              priority 순서로 draw 콜백을 디스패치합니다.
+            </p>
+            <h3>Legacy — WsiViewerCanvas</h3>
             <pre><code class="language-txt">React
  └─ WsiViewerCanvas
     ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)

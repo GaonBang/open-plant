@@ -35,7 +35,14 @@
       <div class="layout">
         <aside class="sidebar">
           <h2>API</h2>
-          <a href="#wsi-viewer">WsiViewerCanvas</a>
+          <a href="#composition-api">WsiViewer (v1.4)</a>
+          <a href="#point-layer">PointLayer</a>
+          <a href="#region-layer">RegionLayer</a>
+          <a href="#drawing-layer">DrawingLayer</a>
+          <a href="#patch-layer">PatchLayer</a>
+          <a href="#overlay-layer">OverlayLayer</a>
+          <a href="#viewer-context">ViewerContext</a>
+          <a href="#wsi-viewer">WsiViewerCanvas (legacy)</a>
           <a href="#draw-layer">DrawLayer</a>
           <a href="#tile-viewer">TileViewerCanvas</a>
           <a href="#types">Core types</a>
@@ -51,8 +58,157 @@
             <p>All items below are exported from <code>src/index.ts</code>.</p>
           </section>
 
+          <section class="panel reveal" id="composition-api">
+            <h2>`WsiViewer` — Composition API (v1.4.0)</h2>
+            <p>
+              The new declarative layer composition API replaces the monolithic <code>WsiViewerCanvas</code>.
+              <code>WsiViewer</code> manages the WebGL and overlay canvases, provides <code>ViewerContext</code>,
+              and renders child layer components. See <a href="migration-guide.html#v140">v1.4.0 migration</a>.
+            </p>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>source</code></td><td><code>WsiImageSource | null</code></td><td>Image source metadata.</td></tr>
+                <tr><td><code>viewState</code></td><td><code>Partial&lt;WsiViewState&gt;</code></td><td>Controlled zoom/offset/rotation state.</td></tr>
+                <tr><td><code>onViewStateChange</code></td><td><code>(next) =&gt; void</code></td><td>Camera state callback.</td></tr>
+                <tr><td><code>onStats</code></td><td><code>(stats) =&gt; void</code></td><td>Per-frame observability event.</td></tr>
+                <tr><td><code>onTileError</code></td><td><code>(event) =&gt; void</code></td><td>Tile load failure callback.</td></tr>
+                <tr><td><code>onContextLost</code></td><td><code>() =&gt; void</code></td><td>WebGL context lost callback.</td></tr>
+                <tr><td><code>onContextRestored</code></td><td><code>() =&gt; void</code></td><td>WebGL context restored callback.</td></tr>
+                <tr><td><code>imageColorSettings</code></td><td><code>WsiImageColorSettings | null</code></td><td>Tile-only brightness/contrast/saturation.</td></tr>
+                <tr><td><code>fitNonce</code></td><td><code>number</code></td><td>Re-triggers fit-to-image when changed.</td></tr>
+                <tr><td><code>rotationResetNonce</code></td><td><code>number</code></td><td>Resets rotation when changed.</td></tr>
+                <tr><td><code>authToken</code></td><td><code>string</code></td><td>Authorization header token.</td></tr>
+                <tr><td><code>ctrlDragRotate</code></td><td><code>boolean</code></td><td>Enable Ctrl/Cmd+drag rotate. Default: <code>true</code>.</td></tr>
+                <tr><td><code>minZoom</code></td><td><code>number</code></td><td>Minimum zoom override.</td></tr>
+                <tr><td><code>maxZoom</code></td><td><code>number</code></td><td>Maximum zoom override.</td></tr>
+                <tr><td><code>viewTransition</code></td><td><code>WsiViewTransitionOptions</code></td><td>Camera transition animation.</td></tr>
+                <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>Magnification snap stops.</td></tr>
+                <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>Treat fit zoom as snap lower bound.</td></tr>
+                <tr><td><code>pointSizeByZoom</code></td><td><code>PointSizeByZoom</code></td><td>Initial point size stops (also settable via PointLayer).</td></tr>
+                <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>Initial point stroke scale.</td></tr>
+                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>Initial point inner fill opacity.</td></tr>
+                <tr><td><code>debugOverlay</code></td><td><code>boolean</code></td><td>Runtime debug HUD.</td></tr>
+                <tr><td><code>debugOverlayStyle</code></td><td><code>CSSProperties</code></td><td>Debug HUD style override.</td></tr>
+                <tr><td><code>className</code></td><td><code>string</code></td><td>Root container class.</td></tr>
+                <tr><td><code>style</code></td><td><code>CSSProperties</code></td><td>Root container style.</td></tr>
+                <tr><td><code>children</code></td><td><code>ReactNode</code></td><td>Layer components (PointLayer, RegionLayer, etc.).</td></tr>
+              </tbody>
+            </table>
+            <div class="callout">
+              <code>WsiViewer</code> creates exactly two canvases (WebGL + 2D overlay). All layer components render into these shared canvases via <code>ViewerContext</code> — no extra canvases are created per layer.
+            </div>
+          </section>
+
+          <section class="panel reveal" id="point-layer">
+            <h2>`PointLayer` props</h2>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>data</code></td><td><code>WsiPointData | null</code></td><td>Point position + palette index buffers.</td></tr>
+                <tr><td><code>palette</code></td><td><code>Uint8Array | null</code></td><td>RGBA palette texture data.</td></tr>
+                <tr><td><code>sizeByZoom</code></td><td><code>PointSizeByZoom</code></td><td>Runtime point size stops by zoom.</td></tr>
+                <tr><td><code>strokeScale</code></td><td><code>number</code></td><td>Point ring stroke thickness scale.</td></tr>
+                <tr><td><code>innerFillOpacity</code></td><td><code>number</code></td><td>Point inner fill opacity <code>0..1</code>.</td></tr>
+                <tr><td><code>clipEnabled</code></td><td><code>boolean</code></td><td>Clip points to ROI polygons.</td></tr>
+                <tr><td><code>clipToRegions</code></td><td><code>WsiRegion[]</code></td><td>Regions to clip against.</td></tr>
+                <tr><td><code>clipMode</code></td><td><code>PointClipMode</code></td><td>Clip execution mode: <code>"sync" | "worker" | "hybrid-webgpu"</code>.</td></tr>
+                <tr><td><code>onClipStats</code></td><td><code>(event) =&gt; void</code></td><td>Clip timing/result callback.</td></tr>
+                <tr><td><code>onHover</code></td><td><code>(event) =&gt; void</code></td><td>Point hover event.</td></tr>
+                <tr><td><code>onClick</code></td><td><code>(event) =&gt; void</code></td><td>Point click event.</td></tr>
+                <tr><td><code>ref</code></td><td><code>Ref&lt;PointQueryHandle&gt;</code></td><td>Imperative handle with <code>queryAt(coordinate)</code> for hit-testing.</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel reveal" id="region-layer">
+            <h2>`RegionLayer` props</h2>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>regions</code></td><td><code>WsiRegion[]</code></td><td>Persisted ROI list with labels.</td></tr>
+                <tr><td><code>polygons</code></td><td><code>DrawRegionCoordinates[]</code></td><td>Simplified polygon-only ROI input.</td></tr>
+                <tr><td><code>strokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Default region stroke style.</td></tr>
+                <tr><td><code>hoverStrokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Hover stroke override.</td></tr>
+                <tr><td><code>activeStrokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Active stroke override.</td></tr>
+                <tr><td><code>resolveStrokeStyle</code></td><td><code>RegionStrokeStyleResolver</code></td><td>Per-region dynamic stroke resolver.</td></tr>
+                <tr><td><code>labelStyle</code></td><td><code>Partial&lt;RegionLabelStyle&gt; | RegionLabelStyleResolver</code></td><td>Static style object or dynamic resolver function (unified from <code>regionLabelStyle</code> + <code>resolveRegionLabelStyle</code>).</td></tr>
+                <tr><td><code>labelAnchor</code></td><td><code>RegionLabelAnchorMode</code></td><td>Label anchor mode.</td></tr>
+                <tr><td><code>autoLiftLabelAtMaxZoom</code></td><td><code>boolean</code></td><td>Animate label upward at max zoom.</td></tr>
+                <tr><td><code>clampLabelToViewport</code></td><td><code>boolean</code></td><td>Clamp labels to viewport bounds.</td></tr>
+                <tr><td><code>activeRegionId</code></td><td><code>string | number | null</code></td><td>Controlled active region id.</td></tr>
+                <tr><td><code>onActiveChange</code></td><td><code>(regionId) =&gt; void</code></td><td>Active region changed event.</td></tr>
+                <tr><td><code>onHover</code></td><td><code>(event) =&gt; void</code></td><td>Region hover event.</td></tr>
+                <tr><td><code>onClick</code></td><td><code>(event) =&gt; void</code></td><td>Region click event.</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel reveal" id="drawing-layer">
+            <h2>`DrawingLayer` props</h2>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>tool</code></td><td><code>DrawTool</code></td><td>Active draw tool. Default: <code>"cursor"</code>.</td></tr>
+                <tr><td><code>stampOptions</code></td><td><code>StampOptions</code></td><td>Stamp size configuration.</td></tr>
+                <tr><td><code>brushOptions</code></td><td><code>BrushOptions</code></td><td>Brush radius/detail/smoothing/cursor options.</td></tr>
+                <tr><td><code>fillColor</code></td><td><code>string</code></td><td>Preview fill color while drawing.</td></tr>
+                <tr><td><code>areaTooltip</code></td><td><code>DrawAreaTooltipOptions</code></td><td>Realtime mm² tooltip during drawing.</td></tr>
+                <tr><td><code>onComplete</code></td><td><code>(result: DrawResult) =&gt; void</code></td><td>Draw completion callback.</td></tr>
+                <tr><td><code>onPatchComplete</code></td><td><code>(result: PatchDrawResult) =&gt; void</code></td><td>Patch-only completion callback.</td></tr>
+                <tr><td><code>onBrushTap</code></td><td><code>(coordinate) =&gt; boolean</code></td><td>Brush tap handler (return true to consume).</td></tr>
+              </tbody>
+            </table>
+            <div class="callout">
+              <code>DrawingLayer</code> automatically manages interaction lock — when <code>tool !== "cursor"</code>, pan/zoom is disabled. No manual <code>interactionLock</code> prop needed.
+            </div>
+          </section>
+
+          <section class="panel reveal" id="patch-layer">
+            <h2>`PatchLayer` props</h2>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>regions</code></td><td><code>WsiRegion[]</code></td><td>Patch-only polygons.</td></tr>
+                <tr><td><code>strokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Stroke override (default: dashed cyan).</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel reveal" id="overlay-layer">
+            <h2>`OverlayLayer` props</h2>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>shapes</code></td><td><code>DrawOverlayShape[]</code></td><td>Custom overlay shapes (polygon stroke + inverted-fill mask).</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="panel reveal" id="viewer-context">
+            <h2>`useViewerContext()` hook</h2>
+            <p>Access the shared viewer context from any component inside <code>&lt;WsiViewer&gt;</code>.</p>
+            <table>
+              <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>source</code></td><td><code>WsiImageSource | null</code></td><td>Current image source.</td></tr>
+                <tr><td><code>rendererRef</code></td><td><code>RefObject&lt;WsiTileRenderer | null&gt;</code></td><td>Direct renderer access.</td></tr>
+                <tr><td><code>worldToScreen</code></td><td><code>(worldX, worldY) =&gt; DrawCoordinate | null</code></td><td>Coordinate transform.</td></tr>
+                <tr><td><code>screenToWorld</code></td><td><code>(clientX, clientY) =&gt; DrawCoordinate | null</code></td><td>Inverse coordinate transform.</td></tr>
+                <tr><td><code>registerDrawCallback</code></td><td><code>(id, priority, draw) =&gt; void</code></td><td>Register overlay draw function.</td></tr>
+                <tr><td><code>unregisterDrawCallback</code></td><td><code>(id) =&gt; void</code></td><td>Unregister overlay draw function.</td></tr>
+                <tr><td><code>requestOverlayRedraw</code></td><td><code>() =&gt; void</code></td><td>Request overlay canvas redraw.</td></tr>
+                <tr><td><code>setInteractionLock</code></td><td><code>(id, locked) =&gt; void</code></td><td>Lock/unlock pan/zoom.</td></tr>
+                <tr><td><code>isInteractionLocked</code></td><td><code>() =&gt; boolean</code></td><td>Check lock state.</td></tr>
+              </tbody>
+            </table>
+            <pre><code class="language-ts">interface PointQueryHandle {
+  queryAt: (coordinate: DrawCoordinate) =&gt; PointHitEvent | null;
+}</code></pre>
+          </section>
+
           <section class="panel reveal" id="wsi-viewer">
-            <h2>`WsiViewerCanvas` props</h2>
+            <h2>`WsiViewerCanvas` props <span style="color:#b33; font-size:0.75em;">(deprecated — use WsiViewer)</span></h2>
             <table>
               <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
               <tbody>
@@ -201,6 +357,20 @@ interface WsiViewState {
   offsetY: number;
   rotationDeg: number;
 }
+
+type StampShape = "rectangle" | "circle";
+
+interface StampToolConfig {
+  shape: StampShape;
+  areaMm2?: number;
+  pixelSize?: number;
+}
+
+type DrawTool =
+  | "cursor" | "freehand" | "rectangle" | "circular" | "brush"
+  | "eraser" | "region-brush" | "region-eraser"
+  | StampDrawTool
+  | { stamp: StampToolConfig };
 
 interface WsiRenderStats {
   tier: number;

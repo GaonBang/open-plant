@@ -3,17 +3,17 @@ export type { ViewState } from "./core/ortho-camera";
 export type { Bounds, TileDefinition } from "./core/types";
 export type {
   BrushOptions,
+  DrawAreaTooltipOptions,
+  DrawAreaTooltipStyle,
   DrawBounds,
   DrawCoordinate,
   DrawIntent,
-  DrawAreaTooltipOptions,
-  DrawAreaTooltipStyle,
   DrawOverlayCoordinates,
   DrawOverlayInvertedFillStyle,
   DrawOverlayShape,
   DrawProjector,
-  DrawRegionCoordinates,
   DrawRegion,
+  DrawRegionCoordinates,
   DrawResult,
   DrawTool,
   PatchDrawResult,
@@ -26,6 +26,8 @@ export type {
   RegionStyleContext,
   StampDrawTool,
   StampOptions,
+  StampShape,
+  StampToolConfig,
 } from "./react/draw-layer";
 export {
   closeRing,
@@ -33,27 +35,42 @@ export {
   createRectangle,
   DrawLayer,
 } from "./react/draw-layer";
+export type { DrawingLayerProps } from "./react/drawing-layer";
+export { DrawingLayer } from "./react/drawing-layer";
+export type { OverlayLayerProps } from "./react/overlay-layer";
+export { OverlayLayer } from "./react/overlay-layer";
 export type { OverviewMapOptions, OverviewMapPosition, ViewportBorderStyle } from "./react/overview-map";
 export { OverviewMap } from "./react/overview-map";
+export type { PatchLayerProps } from "./react/patch-layer";
+export { PatchLayer } from "./react/patch-layer";
+export type { PointLayerProps, PointQueryHandle } from "./react/point-layer";
+export { PointLayer } from "./react/point-layer";
+export type { RegionLayerProps } from "./react/region-layer";
+export { RegionLayer } from "./react/region-layer";
 export { TileViewerCanvas } from "./react/tile-viewer-canvas";
+export type { ViewerContextValue } from "./react/viewer-context";
+export { useViewerContext } from "./react/viewer-context";
+export type { WsiViewerProps } from "./react/wsi-viewer";
+// --- v1.4.0 Composition API ---
+export { WsiViewer } from "./react/wsi-viewer";
 export type {
   OverviewMapConfig,
   PointClickEvent,
   PointClipStatsEvent,
+  PointerWorldMoveEvent,
   PointHitEvent,
   PointHoverEvent,
-  PointerWorldMoveEvent,
   RegionClickEvent,
   RegionHoverEvent,
   WsiCustomLayer,
   WsiCustomLayerContext,
   WsiViewerCanvasProps,
 } from "./react/wsi-viewer-canvas";
+/** @deprecated Use `WsiViewer` with layer composition instead. */
 export { WsiViewerCanvas } from "./react/wsi-viewer-canvas";
 export { DEFAULT_POINT_COLOR } from "./wsi/constants";
 export type { RawImagePayload, RawImsInfo, RawWsiTerm } from "./wsi/image-info";
 export { normalizeImageInfo, toTileUrl } from "./wsi/image-info";
-export { toRoiGeometry } from "./wsi/roi-geometry";
 export type { RoiCoordinate, RoiPolygon } from "./wsi/point-clip";
 export { filterPointDataByPolygons, filterPointIndicesByPolygons } from "./wsi/point-clip";
 export type {
@@ -87,14 +104,13 @@ export {
   lookupCellIndex,
   terminatePointHitIndexWorker,
 } from "./wsi/point-hit-index-worker-client";
-export type { SpatialExtent, SpatialIndex, SpatialIndexItem } from "./wsi/spatial-index";
-export { createSpatialIndex } from "./wsi/spatial-index";
 export type {
   PointHitIndexWorkerFailure,
   PointHitIndexWorkerRequest,
   PointHitIndexWorkerResponse,
   PointHitIndexWorkerSuccess,
 } from "./wsi/point-hit-index-worker-protocol";
+export { toRoiGeometry } from "./wsi/roi-geometry";
 export type {
   RoiPointGroup,
   RoiPointGroupOptions,
@@ -102,8 +118,8 @@ export type {
   RoiTermCount,
 } from "./wsi/roi-term-stats";
 export { computeRoiPointGroups } from "./wsi/roi-term-stats";
-export type { ParsedWktGeometry, ParsedWktMultiPolygon, ParsedWktPolygon } from "./wsi/wkt";
-export { parseWkt } from "./wsi/wkt";
+export type { SpatialExtent, SpatialIndex, SpatialIndexItem } from "./wsi/spatial-index";
+export { createSpatialIndex } from "./wsi/spatial-index";
 export type {
   ScheduledTile,
   TileBounds,
@@ -119,10 +135,10 @@ export type {
   WsiMultiPolygonCoordinates,
   WsiPointData,
   WsiPolygonCoordinates,
-  WsiRegionCoordinates,
-  WsiRingCoordinates,
   WsiRegion,
+  WsiRegionCoordinates,
   WsiRenderStats,
+  WsiRingCoordinates,
   WsiTerm,
   WsiViewState,
 } from "./wsi/types";
@@ -137,6 +153,8 @@ export {
 } from "./wsi/utils";
 export type { WebGpuCapabilities } from "./wsi/webgpu";
 export { getWebGpuCapabilities, prefilterPointsByBoundsWebGpu } from "./wsi/webgpu";
+export type { ParsedWktGeometry, ParsedWktMultiPolygon, ParsedWktPolygon } from "./wsi/wkt";
+export { parseWkt } from "./wsi/wkt";
 export type {
   PointSizeByZoom,
   WsiTileErrorEvent,

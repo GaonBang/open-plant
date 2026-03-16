@@ -40,6 +40,7 @@
           <a href="#checklist">Breaking-change checklist</a>
           <a href="#mpp">mpp and stamp formulas</a>
           <a href="#examples">Before/after examples</a>
+          <a href="#v140">v1.4.0 Composition API</a>
           <a href="#release-gate">Release gate</a>
         </aside>
 
@@ -114,6 +115,67 @@ circle_radius_px = sqrt(area_um2 / PI) / resolution_um_per_px</code></pre>
 
 // After (recommended default)
 &lt;WsiViewerCanvas clipPointsToRois clipMode="worker" /&gt;</code></pre>
+          </section>
+
+          <section class="panel reveal" id="v140">
+            <h2>6. v1.4.0 — Composition API migration</h2>
+            <p>
+              v1.4.0 adds a declarative layer composition API. <code>WsiViewerCanvas</code> is now deprecated
+              but continues to work without changes. See <a href="../migration-1.4.0.md">full migration guide</a>.
+            </p>
+            <h3>Minimal viewer</h3>
+            <pre><code class="language-tsx">// Before
+&lt;WsiViewerCanvas source={source} viewState={vs} onViewStateChange={setVs} /&gt;
+
+// After
+&lt;WsiViewer source={source} viewState={vs} onViewStateChange={setVs} /&gt;</code></pre>
+            <h3>Points + clipping</h3>
+            <pre><code class="language-tsx">// Before
+&lt;WsiViewerCanvas source={source} pointData={pd} pointPalette={pal}
+  clipPointsToRois roiRegions={regions} /&gt;
+
+// After
+&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer data={pd} palette={pal}
+    clipEnabled clipToRegions={regions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
+            <h3>Drawing + regions</h3>
+            <pre><code class="language-tsx">// Before
+&lt;WsiViewerCanvas source={source} roiRegions={regions}
+  drawTool={tool} interactionLock={tool !== "cursor"}
+  onDrawComplete={onDraw} /&gt;
+
+// After (interactionLock is automatic)
+&lt;WsiViewer source={source}&gt;
+  &lt;RegionLayer regions={regions} /&gt;
+  {tool !== "cursor" &amp;&amp;
+    &lt;DrawingLayer tool={tool} onComplete={onDraw} /&gt;}
+&lt;/WsiViewer&gt;</code></pre>
+            <h3>getCellByCoordinatesRef → PointQueryHandle</h3>
+            <pre><code class="language-tsx">// Before
+const ref = useRef(null);
+&lt;WsiViewerCanvas getCellByCoordinatesRef={ref} /&gt;
+const hit = ref.current?.([x, y]);
+
+// After
+const ref = useRef(null);
+&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer ref={ref} data={pd} palette={pal} /&gt;
+&lt;/WsiViewer&gt;
+const hit = ref.current?.queryAt([x, y]);</code></pre>
+            <h3>New DrawTool types</h3>
+            <pre><code class="language-ts">// New string literals
+"eraser" | "region-brush" | "region-eraser"
+
+// Structured stamp (replaces magic strings)
+{ stamp: { shape: "circle", areaMm2: 0.2 } }</code></pre>
+            <h3>Not yet supported in WsiViewer</h3>
+            <ul>
+              <li><code>onPointerWorldMove</code></li>
+              <li><code>customLayers</code></li>
+              <li><code>onRoiPointGroups</code> / <code>roiPaletteIndexToTermId</code></li>
+            </ul>
+            <p>If you use these, keep <code>WsiViewerCanvas</code> for those features.</p>
           </section>
 
           <section class="panel reveal" id="release-gate">

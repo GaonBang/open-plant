@@ -1,13 +1,27 @@
-import type { DrawCoordinate, DrawTool, StampDrawTool, StampOptions } from "./draw-layer-types";
+import type { DrawCoordinate, DrawTool, StampDrawTool, StampOptions, StampToolConfig } from "./draw-layer-types";
 import { CIRCLE_SIDES, DEFAULT_STAMP_CIRCLE_AREA_MM2, DEFAULT_STAMP_RECTANGLE_AREA_MM2, DEFAULT_STAMP_RECTANGLE_PIXEL_SIZE, LEGACY_HPF_CIRCLE_AREA_MM2 } from "./draw-layer-types";
 import { clampPositiveOrFallback, clampWorld, closeRing } from "./draw-layer-utils";
 
-export type { StampDrawTool, StampOptions };
+export type { StampDrawTool, StampOptions, StampToolConfig };
 
 export function isStampTool(tool: DrawTool): tool is StampDrawTool {
   return (
-    tool === "stamp-rectangle" || tool === "stamp-circle" || tool === "stamp-rectangle-4096px" || tool === "stamp-rectangle-2mm2" || tool === "stamp-circle-2mm2" || tool === "stamp-circle-hpf-0.2mm2"
+    typeof tool === "string" && (
+      tool === "stamp-rectangle" || tool === "stamp-circle" || tool === "stamp-rectangle-4096px" || tool === "stamp-rectangle-2mm2" || tool === "stamp-circle-2mm2" || tool === "stamp-circle-hpf-0.2mm2"
+    )
   );
+}
+
+export function isStampConfig(tool: DrawTool): tool is { stamp: StampToolConfig } {
+  return typeof tool === "object" && tool !== null && "stamp" in tool;
+}
+
+export function isDrawToolString(tool: DrawTool): tool is Exclude<DrawTool, { stamp: StampToolConfig }> {
+  return typeof tool === "string";
+}
+
+export function isBrushVariant(tool: DrawTool): boolean {
+  return tool === "brush" || tool === "eraser" || tool === "region-brush" || tool === "region-eraser";
 }
 
 export function resolveStampOptions(options: StampOptions | undefined): Required<StampOptions> {

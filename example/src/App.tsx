@@ -114,11 +114,11 @@ const INITIAL_POINT_STATUS: PointStatus = {
 };
 
 const DEFAULT_POINT_SIZE_STOPS = {
-  1: 0.5,
-  2: 0.6,
-  5: 0.7,
-  6: 0.8,
-  8: 1,
+  1: 1,
+  2: 2,
+  5: 5,
+  6: 5,
+  8: 8,
 } as const;
 
 function normalizeKey(value: string | null | undefined): string {
@@ -1186,7 +1186,7 @@ export default function App() {
         )}
 
         <div className="overlay">
-          Drag: Pan | Wheel: Zoom | Ctrl/Cmd+Drag: Rotate | Double Click: Zoom In | Shift+Double Click: Zoom Out | Draw Tool: {drawTool}
+          Drag: Pan | Wheel: Zoom | Ctrl/Cmd+Drag: Rotate | Double Click: Zoom In | Shift+Double Click: Zoom Out | Draw Tool: {String(drawTool)}
           <br />
           tier {stats.tier} | visible {stats.visible} | rendered {stats.rendered} | points {stats.points} | fallback {stats.fallback} | cache {stats.cache} | inflight {stats.inflight}
           <br />
@@ -1203,7 +1203,7 @@ export default function App() {
           stamp rect {stampRectangleAreaMm2}mm² | stamp circle {stampCircleAreaMm2}
           mm² | stamp rect px {stampRectanglePixelSize} | brush r {brushRadius}px | brush α {brushOpacity.toFixed(2)} | preview {brushEraserPreview ? "eraser" : "brush"} | label auto-lift{" "}
           {autoLiftRegionLabelAtMaxZoom ? "on" : "off"} | zoom snap {enableZoomSnaps ? "on" : "off"}
-          {source?.mpp ? ` | mag ${((viewState?.zoom || 0) * 10 / source.mpp).toFixed(1)}x` : ""}
+          {source?.mpp ? ` | mag ${(((viewState?.zoom || 0) * 10) / source.mpp).toFixed(1)}x` : ""}
           <br />
           pointSizeByZoom z1:{pointSizeByZoom[1].toFixed(2)} z2:{pointSizeByZoom[2].toFixed(2)} z5:{pointSizeByZoom[5].toFixed(2)} z6:{pointSizeByZoom[6].toFixed(2)} z8:{pointSizeByZoom[8].toFixed(2)}
           {" | "}

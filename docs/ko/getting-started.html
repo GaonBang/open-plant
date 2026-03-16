@@ -89,13 +89,31 @@ const pointZstUrl = rawInfo?.mvtPath || "";</code></pre>
 
           <section class="panel reveal" id="minimal">
             <h2>3. 최소 뷰어 렌더</h2>
+            <h3>v1.4.0 컴포지션 API (권장)</h3>
+            <pre><code class="language-tsx">import { useState } from "react";
+import { WsiViewer } from "open-plant";
+
+function Viewer({ source, token }) {
+  const [viewState, setViewState] = useState();
+
+  return (
+    &lt;WsiViewer
+      source={source}
+      authToken={token}
+      viewState={viewState}
+      onViewStateChange={setViewState}
+      ctrlDragRotate
+      onStats={(s) =&gt; console.log(s)}
+      style={{ width: "100vw", height: "100vh" }}
+    /&gt;
+  );
+}</code></pre>
+            <h3>Legacy (WsiViewerCanvas — 계속 지원)</h3>
             <pre><code class="language-tsx">import { useState } from "react";
 import { WsiViewerCanvas } from "open-plant";
 
 function Viewer({ source, token }) {
   const [viewState, setViewState] = useState();
-  const [rotationResetNonce, setRotationResetNonce] = useState(0);
-  const [selectedRoiId, setSelectedRoiId] = useState(null);
 
   return (
     &lt;WsiViewerCanvas
@@ -104,12 +122,6 @@ function Viewer({ source, token }) {
       viewState={viewState}
       onViewStateChange={setViewState}
       ctrlDragRotate
-      rotationResetNonce={rotationResetNonce}
-      activeRegionId={selectedRoiId}
-      onActiveRegionChange={setSelectedRoiId}
-      onPointerWorldMove={(event) =&gt; {
-        // event.coordinate -> [x, y] | null
-      }}
       onStats={(s) =&gt; console.log(s)}
       style={{ width: "100vw", height: "100vh" }}
     /&gt;
@@ -163,6 +175,11 @@ const pointData = {
   paletteIndices,
   fillModes, // optional Uint8Array (0: ring, 1: solid)
 };</code></pre>
+            <h3>v1.4.0 컴포지션 API</h3>
+            <pre><code class="language-tsx">&lt;WsiViewer source={source} authToken={toBearerToken(token)}&gt;
+  &lt;PointLayer data={pointData} palette={termPalette.colors} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
+            <h3>Legacy</h3>
             <pre><code class="language-tsx">&lt;WsiViewerCanvas
   source={source}
   authToken={toBearerToken(token)}

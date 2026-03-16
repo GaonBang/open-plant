@@ -57,6 +57,25 @@
 
           <section class="panel reveal" id="runtime">
             <h2>Runtime layout</h2>
+            <h3>v1.4.0 — Composition API</h3>
+            <pre><code class="language-txt">React
+ └─ WsiViewer (ViewerContext provider)
+    ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
+    │  ├─ Tile pass
+    │  └─ Point pass (PointLayer registers data)
+    ├─ 2D Overlay Canvas (shared draw registry)
+    │  ├─ RegionLayer draws (priority 10)
+    │  ├─ PatchLayer draws (priority 20)
+    │  ├─ OverlayLayer draws (priority 30)
+    │  └─ RegionLayer labels (priority 50)
+    ├─ DrawingLayer → DrawLayer (pointer capture, preview)
+    └─ OverviewMap (optional child)</code></pre>
+            <p>
+              Each layer component calls <code>registerDrawCallback(id, priority, fn)</code> to paint into the shared overlay canvas.
+              No extra canvases are created per layer. <code>WsiViewer</code> dispatches draw callbacks in priority order within a single
+              <code>requestAnimationFrame</code> pass.
+            </p>
+            <h3>Legacy — WsiViewerCanvas</h3>
             <pre><code class="language-txt">React
  └─ WsiViewerCanvas
     ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)

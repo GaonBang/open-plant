@@ -8,7 +8,25 @@ export type StampDrawTool =
   | "stamp-circle-2mm2"
   | "stamp-circle-hpf-0.2mm2";
 
-export type DrawTool = "cursor" | "freehand" | "rectangle" | "circular" | "brush" | StampDrawTool;
+export type StampShape = "rectangle" | "circle";
+
+export interface StampToolConfig {
+  shape: StampShape;
+  areaMm2?: number;
+  pixelSize?: number;
+}
+
+export type DrawTool =
+  | "cursor"
+  | "freehand"
+  | "rectangle"
+  | "circular"
+  | "brush"
+  | "eraser"
+  | "region-brush"
+  | "region-eraser"
+  | StampDrawTool
+  | { stamp: StampToolConfig };
 
 export type DrawCoordinate = [number, number];
 

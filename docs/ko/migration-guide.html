@@ -40,6 +40,7 @@
           <a href="#checklist">브레이킹 변경 체크리스트</a>
           <a href="#mpp">mpp/스탬프 변환식</a>
           <a href="#examples">Before/After 예시</a>
+          <a href="#v140">v1.4.0 컴포지션 API</a>
           <a href="#release-gate">릴리스 게이트</a>
         </aside>
 
@@ -114,6 +115,67 @@ circle_radius_px = sqrt(area_um2 / PI) / resolution_um_per_px</code></pre>
 
 // After (권장 기본값)
 &lt;WsiViewerCanvas clipPointsToRois clipMode="worker" /&gt;</code></pre>
+          </section>
+
+          <section class="panel reveal" id="v140">
+            <h2>6. v1.4.0 — 컴포지션 API 마이그레이션</h2>
+            <p>
+              v1.4.0은 선언적 레이어 컴포지션 API를 추가합니다. <code>WsiViewerCanvas</code>는 deprecated되었지만
+              기존 코드는 변경 없이 동작합니다. <a href="../migration-1.4.0.md">전체 마이그레이션 가이드</a> 참조.
+            </p>
+            <h3>기본 뷰어</h3>
+            <pre><code class="language-tsx">// Before
+&lt;WsiViewerCanvas source={source} viewState={vs} onViewStateChange={setVs} /&gt;
+
+// After
+&lt;WsiViewer source={source} viewState={vs} onViewStateChange={setVs} /&gt;</code></pre>
+            <h3>포인트 + 클리핑</h3>
+            <pre><code class="language-tsx">// Before
+&lt;WsiViewerCanvas source={source} pointData={pd} pointPalette={pal}
+  clipPointsToRois roiRegions={regions} /&gt;
+
+// After
+&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer data={pd} palette={pal}
+    clipEnabled clipToRegions={regions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
+            <h3>드로잉 + 리전</h3>
+            <pre><code class="language-tsx">// Before
+&lt;WsiViewerCanvas source={source} roiRegions={regions}
+  drawTool={tool} interactionLock={tool !== "cursor"}
+  onDrawComplete={onDraw} /&gt;
+
+// After (interactionLock 자동 관리)
+&lt;WsiViewer source={source}&gt;
+  &lt;RegionLayer regions={regions} /&gt;
+  {tool !== "cursor" &amp;&amp;
+    &lt;DrawingLayer tool={tool} onComplete={onDraw} /&gt;}
+&lt;/WsiViewer&gt;</code></pre>
+            <h3>getCellByCoordinatesRef → PointQueryHandle</h3>
+            <pre><code class="language-tsx">// Before
+const ref = useRef(null);
+&lt;WsiViewerCanvas getCellByCoordinatesRef={ref} /&gt;
+const hit = ref.current?.([x, y]);
+
+// After
+const ref = useRef(null);
+&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer ref={ref} data={pd} palette={pal} /&gt;
+&lt;/WsiViewer&gt;
+const hit = ref.current?.queryAt([x, y]);</code></pre>
+            <h3>신규 DrawTool 타입</h3>
+            <pre><code class="language-ts">// 신규 문자열 리터럴
+"eraser" | "region-brush" | "region-eraser"
+
+// 구조화 stamp (매직 스트링 대체)
+{ stamp: { shape: "circle", areaMm2: 0.2 } }</code></pre>
+            <h3>WsiViewer에서 아직 미지원</h3>
+            <ul>
+              <li><code>onPointerWorldMove</code></li>
+              <li><code>customLayers</code></li>
+              <li><code>onRoiPointGroups</code> / <code>roiPaletteIndexToTermId</code></li>
+            </ul>
+            <p>이 기능을 사용하는 경우 해당 부분은 <code>WsiViewerCanvas</code>를 유지하세요.</p>
           </section>
 
           <section class="panel reveal" id="release-gate">

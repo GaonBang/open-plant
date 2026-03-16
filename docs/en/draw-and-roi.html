@@ -61,16 +61,28 @@
 
           <section class="panel reveal" id="toolbar">
             <h2>1. Toolbar state</h2>
+            <h3>v1.4.0 — DrawingLayer (recommended)</h3>
             <pre><code class="language-tsx">const [drawTool, setDrawTool] = useState("cursor");
 
 &lt;button onClick={() =&gt; setDrawTool("freehand")}&gt;Freehand&lt;/button&gt;
 &lt;button onClick={() =&gt; setDrawTool("rectangle")}&gt;Rectangle&lt;/button&gt;
 &lt;button onClick={() =&gt; setDrawTool("circular")}&gt;Circular&lt;/button&gt;
-&lt;button onClick={() =&gt; setDrawTool("stamp-rectangle")}&gt;Stamp □&lt;/button&gt;
-&lt;button onClick={() =&gt; setDrawTool("stamp-circle")}&gt;Stamp ○&lt;/button&gt;
-&lt;button onClick={() =&gt; setDrawTool("stamp-rectangle-4096px")}&gt;Stamp 4096px&lt;/button&gt;
-&lt;button onClick={() =&gt; setCircleAreaMm2(0.2)}&gt;HPF 0.2mm²&lt;/button&gt;
+&lt;button onClick={() =&gt; setDrawTool("eraser")}&gt;Eraser&lt;/button&gt;
+&lt;button onClick={() =&gt; setDrawTool("region-brush")}&gt;Region Brush&lt;/button&gt;
+&lt;button onClick={() =&gt; setDrawTool({ stamp: { shape: "circle", areaMm2: 0.2 } })}&gt;HPF 0.2mm²&lt;/button&gt;
 &lt;button onClick={() =&gt; setDrawTool("cursor")}&gt;Cursor&lt;/button&gt;
+
+&lt;WsiViewer source={source}&gt;
+  {drawTool !== "cursor" &amp;&amp;
+    &lt;DrawingLayer tool={drawTool} onComplete={onDraw} /&gt;}
+&lt;/WsiViewer&gt;</code></pre>
+            <div class="callout">
+              <code>DrawingLayer</code> manages <code>interactionLock</code> automatically. New <code>DrawTool</code> types:
+              <code>"eraser"</code>, <code>"region-brush"</code>, <code>"region-eraser"</code>, and structured stamp
+              <code>{ stamp: { shape, areaMm2?, pixelSize? } }</code>.
+            </div>
+            <h3>Legacy — WsiViewerCanvas</h3>
+            <pre><code class="language-tsx">const [drawTool, setDrawTool] = useState("cursor");
 
 &lt;WsiViewerCanvas
   source={source}
@@ -143,21 +155,24 @@ const [rectPixelSize, setRectPixelSize] = useState(4096);
 
           <section class="panel reveal" id="persist">
             <h2>5. Persist regions and labels</h2>
+            <h3>v1.4.0 — Composition API</h3>
             <pre><code class="language-tsx">const [regions, setRegions] = useState([]);
 
 const handleDrawComplete = (result) =&gt; {
   setRegions((prev) =&gt; [
     ...prev,
-    {
-      id: `${Date.now()}`,
-      label: "Tumor Core",
-      coordinates: result.coordinates,
-    },
+    { id: `${Date.now()}`, label: "Tumor Core", coordinates: result.coordinates },
   ]);
   setDrawTool("cursor");
 };
 
-&lt;WsiViewerCanvas
+&lt;WsiViewer source={source}&gt;
+  &lt;RegionLayer regions={regions} /&gt;
+  {drawTool !== "cursor" &amp;&amp;
+    &lt;DrawingLayer tool={drawTool} onComplete={handleDrawComplete} /&gt;}
+&lt;/WsiViewer&gt;</code></pre>
+            <h3>Legacy</h3>
+            <pre><code class="language-tsx">&lt;WsiViewerCanvas
   source={source}
   drawTool={drawTool}
   roiRegions={regions}
