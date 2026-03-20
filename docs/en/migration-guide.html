@@ -40,7 +40,7 @@
           <a href="#checklist">Breaking-change checklist</a>
           <a href="#mpp">mpp and stamp formulas</a>
           <a href="#examples">Before/after examples</a>
-          <a href="#v140">v1.4.0 Composition API</a>
+          <a href="#v140">v1.4.4 Composition API</a>
           <a href="#release-gate">Release gate</a>
         </aside>
 
@@ -102,29 +102,31 @@ circle_radius_px = sqrt(area_um2 / PI) / resolution_um_per_px</code></pre>
 
           <section class="panel reveal" id="examples">
             <h2>5. Before/after examples</h2>
-            <pre><code class="language-tsx">// Before (legacy alias, still supported)
+            <pre><code class="language-tsx">// Before (legacy single component; removed in open-plant@1.4.4+)
 &lt;WsiViewerCanvas drawTool="stamp-circle-hpf-0.2mm2" /&gt;
 
-// After (preferred explicit control)
-&lt;WsiViewerCanvas
-  drawTool="stamp-circle"
-  stampOptions={{ circleAreaMm2: 0.2 }}
-/&gt;</code></pre>
-            <pre><code class="language-tsx">// Before (main-thread clipping)
+// After
+&lt;WsiViewer&gt;
+  &lt;DrawingLayer tool={{ stamp: { shape: "circle", areaMm2: 0.2 } }} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
+            <pre><code class="language-tsx">// Before
 &lt;WsiViewerCanvas clipPointsToRois clipMode="sync" /&gt;
 
-// After (recommended default)
-&lt;WsiViewerCanvas clipPointsToRois clipMode="worker" /&gt;</code></pre>
+// After (recommended default: worker)
+&lt;WsiViewer&gt;
+  &lt;PointLayer clipEnabled clipToRegions={regions} clipMode="worker" /&gt;
+&lt;/WsiViewer&gt;</code></pre>
           </section>
 
           <section class="panel reveal" id="v140">
-            <h2>6. v1.4.0 — Composition API migration</h2>
+            <h2>6. v1.4.4 — Composition API migration</h2>
             <p>
-              v1.4.0 adds a declarative layer composition API. <code>WsiViewerCanvas</code> is now deprecated
-              but continues to work without changes. See <a href="../migration-1.4.0.md">full migration guide</a>.
+              <code>WsiViewerCanvas</code> is <strong>removed</strong> from <code>open-plant@1.4.4</code>.
+              Use <code>WsiViewer</code> + layers, or pin <code>open-plant@1.4.3</code> until you migrate.
+              See <a href="../migration-1.4.0.md">full migration guide</a>.
             </p>
             <h3>Minimal viewer</h3>
-            <pre><code class="language-tsx">// Before
+            <pre><code class="language-tsx">// Before (≤1.4.3)
 &lt;WsiViewerCanvas source={source} viewState={vs} onViewStateChange={setVs} /&gt;
 
 // After
@@ -169,16 +171,15 @@ const hit = ref.current?.queryAt([x, y]);</code></pre>
 
 // Structured stamp (replaces magic strings)
 { stamp: { shape: "circle", areaMm2: 0.2 } }</code></pre>
-            <h3>Not yet supported in WsiViewer</h3>
+            <h3>No direct layer props (app-side)</h3>
             <ul>
-              <li><code>customLayers</code></li>
-              <li><code>onRoiPointGroups</code> / <code>roiPaletteIndexToTermId</code></li>
+              <li><code>customLayers</code> → <code>useViewerContext</code> + host React overlay</li>
+              <li><code>onRoiPointGroups</code> / <code>roiPaletteIndexToTermId</code> → <code>computeRoiPointGroups()</code></li>
             </ul>
-            <p>If you use these, keep <code>WsiViewerCanvas</code> for those features.</p>
           </section>
 
           <section class="panel reveal" id="release-gate">
-            <h2>6. Release gate (fixed)</h2>
+            <h2>7. Release gate (fixed)</h2>
             <p>
               Every publish must pass the same command locally and in CI.
             </p>

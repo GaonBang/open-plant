@@ -57,7 +57,7 @@
 
           <section class="panel reveal" id="runtime">
             <h2>Runtime layout</h2>
-            <h3>v1.4.0 — Composition API</h3>
+            <h3>v1.4.4 — Composition API</h3>
             <pre><code class="language-txt">React
  └─ WsiViewer (ViewerContext provider)
     ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
@@ -75,13 +75,11 @@
               No extra canvases are created per layer. <code>WsiViewer</code> dispatches draw callbacks in priority order within a single
               <code>requestAnimationFrame</code> pass.
             </p>
-            <h3>Legacy — WsiViewerCanvas</h3>
-            <pre><code class="language-txt">React
- └─ WsiViewerCanvas
-    ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
-    │  ├─ Tile pass
-    │  └─ Point pass
-    └─ DrawLayer Canvas (ROI input + preview + labels)</code></pre>
+            <h3>Removed in v1.4.4 — <code>WsiViewerCanvas</code></h3>
+            <p>
+              The old monolithic tree (single component wrapping the same renderer + a separate DrawLayer canvas) is no longer shipped from npm.
+              Pin <code>open-plant@1.4.3</code> only if you must inspect the historical layout; new work should follow the composition tree above.
+            </p>
           </section>
 
           <section class="panel reveal" id="tile">

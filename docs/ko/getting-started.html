@@ -50,8 +50,8 @@
             <div class="kicker">Quickstart</div>
             <h1>10분 내 첫 WSI 렌더</h1>
             <p>
-              `WsiViewerCanvas`를 기준으로 타일, 포인트, ROI를 순서대로 연결합니다.
-              아래 코드는 현재 라이브러리 API(`src/index.ts`)에 맞춰 작성되어 있습니다.
+              <code>WsiViewer</code>와 레이어(<code>PointLayer</code>, <code>RegionLayer</code> 등)로 타일·포인트·ROI를 연결합니다.
+              아래 코드는 현재 라이브러리 API(<code>src/index.ts</code>, <strong>v1.4.4</strong>)에 맞춰 작성되어 있습니다.
             </p>
           </section>
 
@@ -89,7 +89,7 @@ const pointZstUrl = rawInfo?.mvtPath || "";</code></pre>
 
           <section class="panel reveal" id="minimal">
             <h2>3. 최소 뷰어 렌더</h2>
-            <h3>v1.4.0 컴포지션 API (권장)</h3>
+            <h3>컴포지션 API (v1.4.4)</h3>
             <pre><code class="language-tsx">import { useState } from "react";
 import { WsiViewer } from "open-plant";
 
@@ -108,30 +108,15 @@ function Viewer({ source, token }) {
     /&gt;
   );
 }</code></pre>
-            <h3>Legacy (WsiViewerCanvas — 계속 지원)</h3>
-            <pre><code class="language-tsx">import { useState } from "react";
-import { WsiViewerCanvas } from "open-plant";
-
-function Viewer({ source, token }) {
-  const [viewState, setViewState] = useState();
-
-  return (
-    &lt;WsiViewerCanvas
-      source={source}
-      authToken={token}
-      viewState={viewState}
-      onViewStateChange={setViewState}
-      ctrlDragRotate
-      onStats={(s) =&gt; console.log(s)}
-      style={{ width: "100vw", height: "100vh" }}
-    /&gt;
-  );
-}</code></pre>
+            <div class="callout">
+              <code>WsiViewerCanvas</code>는 npm 패키지 <strong>v1.4.4</strong>부터 제거되었습니다.
+              당분간 단일 컴포넌트가 필요하면 <code>"open-plant": "1.4.3"</code> 등으로 버전을 고정하세요.
+            </div>
           </section>
 
           <section class="panel reveal" id="camera-color">
             <h2>4. 카메라 제한/전환 + 타일 색상 보정</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+            <pre><code class="language-tsx">&lt;WsiViewer
   source={source}
   imageColorSettings={{
     brightness: 0,
@@ -141,12 +126,13 @@ function Viewer({ source, token }) {
   minZoom={0.25}
   maxZoom={1}
   viewTransition={{ duration: 300 }}
-  autoLiftRegionLabelAtMaxZoom
-/&gt;</code></pre>
+&gt;
+  &lt;RegionLayer regions={regions} autoLiftLabelAtMaxZoom /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <p>
               색상 보정은 타일 셰이더에만 적용됩니다. point/cell marker, ROI, draw overlay 색상은 변경되지 않습니다.
             </p>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+            <pre><code class="language-tsx">&lt;WsiViewer
   source={source}
   zoomSnaps={[1.25, 2.5, 5, 10, 20, 40]}
   zoomSnapFitAsMin
@@ -175,53 +161,52 @@ const pointData = {
   paletteIndices,
   fillModes, // optional Uint8Array (0: ring, 1: solid)
 };</code></pre>
-            <h3>v1.4.0 컴포지션 API</h3>
-            <pre><code class="language-tsx">&lt;WsiViewer source={source} authToken={toBearerToken(token)}&gt;
+            <h3>컴포지션 API</h3>
+            <pre><code class="language-tsx">import { WsiViewer, PointLayer } from "open-plant";
+
+&lt;WsiViewer source={source} authToken={toBearerToken(token)}&gt;
   &lt;PointLayer data={pointData} palette={termPalette.colors} /&gt;
 &lt;/WsiViewer&gt;</code></pre>
-            <h3>Legacy</h3>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  authToken={toBearerToken(token)}
-  pointData={pointData}
-  pointPalette={termPalette.colors}
-/&gt;</code></pre>
           </section>
 
           <section class="panel reveal" id="roi">
             <h2>6. ROI 폴리곤 클리핑</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  pointPalette={termPalette.colors}
-  roiRegions={[
-    {
-      id: "roi-1",
-      label: "Tumor Core",
-      coordinates: [
-        [12000, 14000],
-        [18000, 14000],
-        [18000, 20000],
-        [12000, 20000],
-        [12000, 14000],
-      ],
-    },
-  ]}
-  clipPointsToRois
-/&gt;</code></pre>
+            <pre><code class="language-tsx">const roiRegions = [
+  {
+    id: "roi-1",
+    label: "Tumor Core",
+    coordinates: [
+      [12000, 14000],
+      [18000, 14000],
+      [18000, 20000],
+      [12000, 20000],
+      [12000, 14000],
+    ],
+  },
+];
+
+&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer
+    data={pointData}
+    palette={termPalette.colors}
+    clipEnabled
+    clipToRegions={roiRegions}
+  /&gt;
+  &lt;RegionLayer regions={roiRegions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
           </section>
 
           <section class="panel reveal" id="roi-stats">
-            <h2>7. ROI term 통계 콜백</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  roiRegions={regions}
-  roiPaletteIndexToTermId={new Map([[1, "negative"], [2, "positive"]])}
-  onRoiPointGroups={(stats) =&gt; {
-    // stats.groups -> ROI별 term count
-  }}
-/&gt;</code></pre>
+            <h2>7. ROI term 통계</h2>
+            <p>
+              <code>onRoiPointGroups</code>는 <code>WsiViewerCanvas</code>와 함께 제거되었습니다. 데이터가 바뀔 때 <code>computeRoiPointGroups</code>를 호출하세요.
+            </p>
+            <pre><code class="language-ts">import { computeRoiPointGroups } from "open-plant";
+
+const stats = computeRoiPointGroups(pointData, regions, {
+  paletteIndexToTermId: new Map([[1, "negative"], [2, "positive"]]),
+});
+// stats.groups -&gt; ROI별 term count</code></pre>
           </section>
 
           <section class="panel reveal" id="clip-accel">
@@ -230,17 +215,19 @@ const pointData = {
 
 const caps = await getWebGpuCapabilities();
 const clipMode = caps.supported ? "hybrid-webgpu" : "worker";</code></pre>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  pointPalette={termPalette.colors}
-  roiRegions={regions}
-  clipPointsToRois
-  clipMode={clipMode} // "sync" | "worker" | "hybrid-webgpu"
-  onClipStats={(stats) =&gt; {
-    console.log(stats.mode, stats.durationMs, stats.outputCount);
-  }}
-/&gt;</code></pre>
+            <pre><code class="language-tsx">&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer
+    data={pointData}
+    palette={termPalette.colors}
+    clipEnabled
+    clipToRegions={regions}
+    clipMode={clipMode}
+    onClipStats={(stats) =&gt; {
+      console.log(stats.mode, stats.durationMs, stats.outputCount);
+    }}
+  /&gt;
+  &lt;RegionLayer regions={regions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <div class="callout">
               <strong>권장 기본값:</strong> 먼저 <code>clipMode="worker"</code>를 사용하세요.
               <code>hybrid-webgpu</code>는 실데이터 벤치마크 후 선택하는 것을 권장합니다.

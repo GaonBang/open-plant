@@ -57,7 +57,7 @@
 
           <section class="panel reveal" id="runtime">
             <h2>런타임 구성</h2>
-            <h3>v1.4.0 — 컴포지션 API</h3>
+            <h3>v1.4.4 — 컴포지션 API</h3>
             <pre><code class="language-txt">React
  └─ WsiViewer (ViewerContext provider)
     ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
@@ -75,13 +75,11 @@
               레이어당 추가 캔버스가 생성되지 않으며, <code>WsiViewer</code>가 단일 <code>requestAnimationFrame</code> 패스에서
               priority 순서로 draw 콜백을 디스패치합니다.
             </p>
-            <h3>Legacy — WsiViewerCanvas</h3>
-            <pre><code class="language-txt">React
- └─ WsiViewerCanvas
-    ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
-    │  ├─ Tile pass (bitmap quads)
-    │  └─ Point pass (palette indexed ring points)
-    └─ DrawLayer Canvas (pointer capture, ROI preview/labels)</code></pre>
+            <h3>v1.4.4 제거 — <code>WsiViewerCanvas</code></h3>
+            <p>
+              예전 모놀리식 트리(동일 렌더러 + 별도 DrawLayer 캔버스를 한 컴포넌트로 묶음)는 npm 패키지에 더 이상 포함되지 않습니다.
+              과거 레이아웃이 필요하면 <code>open-plant@1.4.3</code> 등으로만 확인하고, 신규 구현은 위 컴포지션 트리를 따르세요.
+            </p>
           </section>
 
           <section class="panel reveal" id="tile-pipeline">

@@ -2,6 +2,8 @@
 
 정적 문서 사이트입니다. GitHub Pages에서 `docs/` 디렉토리를 직접 배포합니다.
 
+문서 기준 패키지 버전: **open-plant 1.4.4** (`WsiViewer` + 레이어 API, `WsiViewerCanvas` 미포함).
+
 ## Language Structure
 
 - `index.html`: 언어 선택 랜딩 (`/en`, `/ko`)

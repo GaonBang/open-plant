@@ -35,14 +35,14 @@
       <div class="layout">
         <aside class="sidebar">
           <h2>API</h2>
-          <a href="#composition-api">WsiViewer (v1.4)</a>
+          <a href="#composition-api">WsiViewer (v1.4.4)</a>
           <a href="#point-layer">PointLayer</a>
           <a href="#region-layer">RegionLayer</a>
           <a href="#drawing-layer">DrawingLayer</a>
           <a href="#patch-layer">PatchLayer</a>
           <a href="#overlay-layer">OverlayLayer</a>
           <a href="#viewer-context">ViewerContext</a>
-          <a href="#wsi-viewer">WsiViewerCanvas (legacy)</a>
+          <a href="#wsi-viewer">레거시 WsiViewerCanvas (v1.4.4 제거)</a>
           <a href="#draw-layer">DrawLayer</a>
           <a href="#tile-viewer">TileViewerCanvas</a>
           <a href="#wsi-types">WSI 타입</a>
@@ -62,11 +62,11 @@
           </section>
 
           <section class="panel reveal" id="composition-api">
-            <h2>`WsiViewer` — 컴포지션 API (v1.4.0)</h2>
+            <h2>`WsiViewer` — 컴포지션 API (v1.4.4)</h2>
             <p>
-              기존 모놀리식 <code>WsiViewerCanvas</code>를 대체하는 선언적 레이어 컴포지션 API입니다.
+              선언적 레이어 컴포지션 API입니다. 모놀리식 <code>WsiViewerCanvas</code>는 <strong>v1.4.4</strong>에서 패키지에서 제거되었습니다.
               <code>WsiViewer</code>는 WebGL/오버레이 캔버스를 관리하고 <code>ViewerContext</code>를 제공하며,
-              자식 레이어 컴포넌트를 렌더링합니다. <a href="migration-guide.html#v140">v1.4.0 마이그레이션</a> 참조.
+              자식 레이어 컴포넌트를 렌더링합니다. <a href="migration-guide.html#v140">마이그레이션 가이드</a> 참조.
             </p>
             <table>
               <thead><tr><th>이름</th><th>타입</th><th>설명</th></tr></thead>
@@ -88,9 +88,6 @@
                 <tr><td><code>viewTransition</code></td><td><code>WsiViewTransitionOptions</code></td><td>카메라 전환 애니메이션.</td></tr>
                 <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>배율 스냅 단계.</td></tr>
                 <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>fit zoom을 스냅 하한으로 사용.</td></tr>
-                <tr><td><code>pointSizeByZoom</code></td><td><code>PointSizeByZoom</code></td><td>초기 point 크기 stop (PointLayer에서도 설정 가능).</td></tr>
-                <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>초기 point stroke 스케일.</td></tr>
-                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>초기 point 내부 채움 불투명도.</td></tr>
                 <tr><td><code>onPointerWorldMove</code></td><td><code>(event: PointerWorldMoveEvent) =&gt; void</code></td><td>월드 좌표 포인터 스트림 콜백.</td></tr>
                 <tr><td><code>debugOverlay</code></td><td><code>boolean</code></td><td>런타임 디버그 HUD.</td></tr>
                 <tr><td><code>debugOverlayStyle</code></td><td><code>CSSProperties</code></td><td>디버그 HUD 스타일 override.</td></tr>
@@ -212,82 +209,15 @@
           </section>
 
           <section class="panel reveal" id="wsi-viewer">
-            <h2>`WsiViewerCanvas` Props <span style="color:#b33; font-size:0.75em;">(deprecated — WsiViewer 사용 권장)</span></h2>
-            <table>
-              <thead>
-                <tr><th>이름</th><th>타입</th><th>설명</th></tr>
-              </thead>
-              <tbody>
-                <tr><td><code>source</code></td><td><code>WsiImageSource | null</code></td><td>렌더 대상 이미지 메타데이터.</td></tr>
-                <tr><td><code>authToken</code></td><td><code>string</code></td><td>필요한 요청에 Authorization 헤더 토큰을 주입합니다.</td></tr>
-                <tr><td><code>viewState</code></td><td><code>Partial&lt;WsiViewState&gt;</code></td><td>외부 제어 줌/오프셋/회전(<code>rotationDeg</code>) 상태.</td></tr>
-                <tr><td><code>onViewStateChange</code></td><td><code>(next) =&gt; void</code></td><td>카메라 상태 변경 콜백.</td></tr>
-                <tr><td><code>imageColorSettings</code></td><td><code>WsiImageColorSettings | null</code></td><td>타일 전용 밝기/대비/채도 입력(<code>[-100, 100]</code>). point/ROI/draw overlay에는 적용되지 않습니다.</td></tr>
-                <tr><td><code>onStats</code></td><td><code>(stats: WsiRenderStats) =&gt; void</code></td><td>프레임 관측 이벤트. 타일/포인트 통계와 queue/failure/cache hit/miss, frame 시간 포함.</td></tr>
-                <tr><td><code>onTileError</code></td><td><code>(event) =&gt; void</code></td><td>타일 로드 실패 콜백(타일 정보, 오류 객체, 재시도 횟수).</td></tr>
-                <tr><td><code>onContextLost</code></td><td><code>() =&gt; void</code></td><td>WebGL 컨텍스트 손실 시 호출되며 렌더 루프가 일시 정지됩니다.</td></tr>
-                <tr><td><code>onContextRestored</code></td><td><code>() =&gt; void</code></td><td>컨텍스트 복구 후 GPU 상태 재구성 완료 시 호출됩니다.</td></tr>
-                <tr><td><code>debugOverlay</code></td><td><code>boolean</code></td><td>내장 런타임 디버그 HUD 표시. 기본값 <code>false</code>.</td></tr>
-                <tr><td><code>debugOverlayStyle</code></td><td><code>CSSProperties</code></td><td>내장 디버그 HUD 스타일 오버라이드.</td></tr>
-                <tr><td><code>fitNonce</code></td><td><code>number</code></td><td>값이 바뀌면 fit-to-image 재실행.</td></tr>
-                <tr><td><code>rotationResetNonce</code></td><td><code>number</code></td><td>값이 바뀌면 회전을 0도로 리셋.</td></tr>
-                <tr><td><code>ctrlDragRotate</code></td><td><code>boolean</code></td><td><code>Ctrl/Cmd + drag</code> 회전 허용. 기본값 <code>true</code>.</td></tr>
-                <tr><td><code>minZoom</code></td><td><code>number</code></td><td>최소 줌 override. 미지정 시 <code>fitZoom * 0.5</code>. wheel/double-click/<code>setViewState</code>/<code>fitToImage</code> 경로 모두 적용.</td></tr>
-                <tr><td><code>maxZoom</code></td><td><code>number</code></td><td>최대 줌 override. 미지정 시 <code>fitZoom * 8</code>.</td></tr>
-                <tr><td><code>viewTransition</code></td><td><code>{ duration?: number; easing?: (t) =&gt; number }</code></td><td>기본 카메라 전환 애니메이션. duration은 <code>0..2000ms</code>로 clamp됩니다.</td></tr>
-                <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>배율 스냅 단계 목록(예: <code>[1.25, 2.5, 5, 10, 20, 40]</code>). 내부적으로 <code>source.mpp</code> 기준 zoom 값으로 정규화됩니다.</td></tr>
-                <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>true면 snap-out 시 fit zoom을 하한으로 취급합니다.</td></tr>
-                <tr><td><code>pointData</code></td><td><code>WsiPointData | null</code></td><td>포인트 위치 + 팔레트 인덱스 버퍼(<code>ids</code>로 hit-test 지원).</td></tr>
-                <tr><td><code>pointPalette</code></td><td><code>Uint8Array | null</code></td><td>RGBA palette texture 데이터.</td></tr>
-                <tr><td><code>pointSizeByZoom</code></td><td><code>Record&lt;number, number&gt;</code></td><td>continuous zoom 기준 point 크기(px) stop. stop 사이는 선형 보간.</td></tr>
-                <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>point ring 두께 스케일.</td></tr>
-                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>point 내부 채움 불투명도 (<code>0..1</code>).</td></tr>
-                <tr><td><code>roiRegions</code></td><td><code>WsiRegion[]</code></td><td>영속 ROI 목록(라벨 포함).</td></tr>
-                <tr><td><code>roiPolygons</code></td><td><code>DrawCoordinate[][]</code></td><td>간소화 ROI 입력.</td></tr>
-                <tr><td><code>clipPointsToRois</code></td><td><code>boolean</code></td><td>ROI 외부 포인트 제거.</td></tr>
-                <tr><td><code>clipMode</code></td><td><code>"sync" | "worker" | "hybrid-webgpu"</code></td><td>ROI clip 실행 모드. 기본값 <code>"worker"</code>.</td></tr>
-                <tr><td><code>onClipStats</code></td><td><code>(event) =&gt; void</code></td><td>clip 실행 통계 콜백(mode, duration, input/output, WebGPU 사용 여부, draw 브리지 여부 <code>bridgedToDraw</code>).</td></tr>
-                <tr><td><code>onRoiPointGroups</code></td><td><code>(stats) =&gt; void</code></td><td>현재 포인트/ROI 기준 ROI별 term count 콜백.</td></tr>
-                <tr><td><code>roiPaletteIndexToTermId</code></td><td><code>ReadonlyMap&lt;number,string&gt; | string[]</code></td><td>ROI term count 집계용 paletteIndex→termId 매핑.</td></tr>
-                <tr><td><code>interactionLock</code></td><td><code>boolean</code></td><td>캔버스 pan/zoom 잠금.</td></tr>
-                <tr><td><code>drawTool</code></td><td><code>"cursor" | "freehand" | "rectangle" | "circular" | "brush" | StampDrawTool</code></td><td>활성 draw 툴. <code>stamp-rectangle-4096px</code>는 patch intent, brush는 <code>intent: "brush"</code>를 emit합니다.</td></tr>
-                <tr><td><code>stampOptions</code></td><td><code>{ rectangleAreaMm2?: number; circleAreaMm2?: number; rectanglePixelSize?: number }</code></td><td>외부에서 stamp 크기 제어. 기본값은 면적 stamp 2mm², 고정 사각형 4096px.</td></tr>
-                <tr><td><code>brushOptions</code></td><td><code>BrushOptions</code></td><td>brush 반경/디테일/스무딩/커서 옵션. 반경은 HTML/CSS px 기준으로 화면에서 줌 불변입니다.</td></tr>
-                <tr><td><code>drawFillColor</code></td><td><code>string</code></td><td>freehand/rectangle/circular draw preview fill 색상. 기본값 <code>transparent</code>.</td></tr>
-                <tr><td><code>patchRegions</code></td><td><code>WsiRegion[]</code></td><td>ROI 상호작용과 분리된 patch 전용 영속 polygon 목록.</td></tr>
-                <tr><td><code>patchStrokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>patch 전용 stroke override(기본: cyan 점선).</td></tr>
-                <tr><td><code>regionStrokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>ROI stroke 스타일 override.</td></tr>
-                <tr><td><code>regionStrokeHoverStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>ROI hover 시 stroke 스타일 override.</td></tr>
-                <tr><td><code>regionStrokeActiveStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>ROI active 시 stroke 스타일 override (shadow 포함).</td></tr>
-                <tr><td><code>resolveRegionStrokeStyle</code></td><td><code>(context) =&gt; Partial&lt;RegionStrokeStyle&gt;</code></td><td>region/state별 동적 stroke 스타일 resolver.</td></tr>
-                <tr><td><code>resolveRegionLabelStyle</code></td><td><code>(context) =&gt; Partial&lt;RegionLabelStyle&gt;</code></td><td>region/zoom별 동적 라벨 스타일 resolver(<code>offsetY</code> 등).</td></tr>
-                <tr><td><code>overlayShapes</code></td><td><code>DrawOverlayShape[]</code></td><td>DrawLayer 커스텀 오버레이 도형(폴리곤 stroke + 반전 마스크 지원).</td></tr>
-                <tr><td><code>customLayers</code></td><td><code>WsiCustomLayer[]</code></td><td>world/screen 변환기를 받는 커스텀 React 오버레이 레이어 슬롯.</td></tr>
-                <tr><td><code>regionLabelStyle</code></td><td><code>Partial&lt;RegionLabelStyle&gt;</code></td><td>영속 region 라벨 스타일 override.</td></tr>
-                <tr><td><code>regionLabelAnchor</code></td><td><code>"top-center" | "centroid"</code></td><td>라벨 배치/히트 영역에 쓰이는 anchor 모드.</td></tr>
-                <tr><td><code>drawAreaTooltip</code></td><td><code>DrawAreaTooltipOptions</code></td><td>freehand/rectangle/circular draw 중 실시간 mm² tooltip.</td></tr>
-                <tr><td><code>autoLiftRegionLabelAtMaxZoom</code></td><td><code>boolean</code></td><td><code>maxZoom</code> 도달 시 라벨을 20px 위로 애니메이션 이동하고, 이탈 시 복귀.</td></tr>
-                <tr><td><code>clampRegionLabelToViewport</code></td><td><code>boolean</code></td><td>region 라벨을 뷰포트 경계 안으로 clamp합니다.</td></tr>
-                <tr><td><code>onPointerWorldMove</code></td><td><code>(event) =&gt; void</code></td><td>월드 좌표 포인터 스트림 콜백.</td></tr>
-                <tr><td><code>onPointHover</code></td><td><code>(event) =&gt; void</code></td><td>cursor 모드에서 nearest point hover 이벤트. 미히트 시 <code>index/id</code>는 <code>null</code>.</td></tr>
-                <tr><td><code>onPointClick</code></td><td><code>(event) =&gt; void</code></td><td>cursor 모드에서 nearest point 클릭 이벤트(버튼 정보 포함).</td></tr>
-                <tr><td><code>getCellByCoordinatesRef</code></td><td><code>MutableRefObject&lt;(coord) =&gt; PointHitEvent | null&gt;</code></td><td>월드 좌표 기반 point hit-test 함수를 imperative ref로 노출.</td></tr>
-                <tr><td><code>onRegionHover</code></td><td><code>(event) =&gt; void</code></td><td>cursor 모드 region hover 이벤트.</td></tr>
-                <tr><td><code>onRegionClick</code></td><td><code>(event) =&gt; void</code></td><td>cursor 모드 region 클릭 이벤트.</td></tr>
-                <tr><td><code>activeRegionId</code></td><td><code>string | number | null</code></td><td>controlled active region id. 생략하면 uncontrolled 모드로 동작.</td></tr>
-                <tr><td><code>onActiveRegionChange</code></td><td><code>(regionId) =&gt; void</code></td><td>active region 변경 이벤트. 기본 동작은 같은 region 재클릭 시 토글 해제, 빈 공간 클릭 시 해제입니다.</td></tr>
-                <tr><td><code>onDrawComplete</code></td><td><code>(result) =&gt; void</code></td><td>도형 완료 콜백. payload에 <code>intent: "roi" | "patch" | "brush"</code> 포함.</td></tr>
-                <tr><td><code>onPatchComplete</code></td><td><code>(result) =&gt; void</code></td><td><code>stamp-rectangle-4096px</code> 완료 시 patch 전용 콜백.</td></tr>
-                <tr><td><code>overviewMapConfig</code></td><td><code>OverviewMapConfig</code></td><td>Overview map 표시/옵션/스타일.</td></tr>
-                <tr><td><code>className</code></td><td><code>string</code></td><td>루트 컨테이너 className.</td></tr>
-                <tr><td><code>style</code></td><td><code>CSSProperties</code></td><td>루트 컨테이너 style.</td></tr>
-              </tbody>
-            </table>
+            <h2>레거시 <code>WsiViewerCanvas</code> <span style="color:#b33;">v1.4.4+ 에서 제거</span></h2>
+            <p>모놀리식 <code>WsiViewerCanvas</code> 컴포넌트와 <code>WsiViewerCanvasProps</code>는 <strong>open-plant v1.4.4</strong>부터 패키지에서 <strong>export되지 않습니다</strong>.</p>
+            <ul>
+              <li><strong>업그레이드:</strong> 위 섹션의 <code>WsiViewer</code> + 레이어 조합과 <a href="../migration-1.4.0.md">마이그레이션 가이드</a>를 사용하세요.</li>
+              <li><strong>당분간 레거시 API 유지:</strong> <code>"open-plant": "1.4.3"</code> 등으로 버전을 고정하세요(락파일 기준 마지막 <code>WsiViewerCanvas</code> 포함 버전).</li>
+              <li><strong>과거 Props 표:</strong> git 히스토리 및 <code>migration-1.4.0.md</code> 매핑표에 보존됩니다.</li>
+            </ul>
             <div class="callout">
-              cursor 모드의 region hit-test는 contour + 라벨 영역만 대상으로 하며, 내부 fill 영역은 의도적으로 제외됩니다.
-            </div>
-            <div class="callout">
-              타일 색상 보정 정규화: <code>brightness / 200</code>, <code>contrast / 100</code>, <code>saturation / 100</code>. 타일 셰이더에만 적용됩니다.
+              ROI term 통계: <code>onRoiPointGroups</code> 대신 앱 코드에서 <code>computeRoiPointGroups()</code>를 호출하세요. <code>customLayers</code>는 직접 대체 없음 — <code>useViewerContext</code> + 호스트 React 오버레이를 사용하세요.
             </div>
           </section>
 

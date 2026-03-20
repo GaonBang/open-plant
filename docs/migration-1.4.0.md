@@ -1,13 +1,19 @@
-# v1.3.x → v1.4.0 마이그레이션 가이드
+# v1.3.x → v1.4.x 마이그레이션 가이드 (현재 패키지: **1.4.4**)
 
-## 요약
+## v1.4.4 — Breaking: `WsiViewerCanvas` 제거
 
-v1.4.0은 **breaking change가 없는 minor 릴리스**입니다. 기존 `WsiViewerCanvas` 코드는 수정 없이 동작합니다.
+**`WsiViewerCanvas`와 `WsiViewerCanvasProps`는 npm 패키지 `open-plant@1.4.4`부터 더 이상 export되지 않습니다.**
 
-핵심 변경:
-- `WsiViewerCanvas`에 `@deprecated` 마킹 (향후 major에서 제거 예정)
-- 새 API: `WsiViewer` + 레이어 컴포넌트 (`PointLayer`, `RegionLayer`, `DrawingLayer`, `PatchLayer`, `OverlayLayer`)
-- `DrawTool` 타입 확장: `"eraser"`, `"region-brush"`, `"region-eraser"`, `{ stamp: StampToolConfig }`
+- 신규/업그레이드 프로젝트: 아래 **`WsiViewer` + 레이어** 조합으로 이전하세요.
+- 당분간 단일 컴포넌트 API가 필요하면: `package.json`에서 `open-plant`를 **`1.4.3` 이하**로 고정하거나, 저장소 히스토리에서 컴포넌트를 벤더링합니다.
+
+## v1.4.0 요약 (히스토리)
+
+v1.4.0에서 컴포지션 API가 도입되었고, 당시에는 `WsiViewerCanvas`가 deprecated 상태로 **동시에 제공**되었습니다.
+
+핵심 변경 (v1.4.0):
+- 새 API: `WsiViewer` + 레이어 (`PointLayer`, `RegionLayer`, `DrawingLayer`, `PatchLayer`, `OverlayLayer`)
+- `DrawTool` 타입 확장: `"eraser"`, `"region-brush"`, `"region-eraser"`, `{ stamp: StampToolConfig }` 등
 
 ---
 
@@ -37,9 +43,6 @@ v1.4.0은 **breaking change가 없는 minor 릴리스**입니다. 기존 `WsiVie
 | `zoomSnaps` | `zoomSnaps` | |
 | `zoomSnapFitAsMin` | `zoomSnapFitAsMin` | |
 | `onPointerWorldMove` | `onPointerWorldMove` | |
-| `pointSizeByZoom` | `pointSizeByZoom` | 초기값으로 사용됨. PointLayer에서도 설정 가능 |
-| `pointStrokeScale` | `pointStrokeScale` | 〃 |
-| `pointInnerFillOpacity` | `pointInnerFillOpacity` | 〃 |
 | `debugOverlay` | `debugOverlay` | |
 | `debugOverlayStyle` | `debugOverlayStyle` | |
 | `className` | `className` | |
@@ -113,15 +116,14 @@ v1.4.0은 **breaking change가 없는 minor 릴리스**입니다. 기존 `WsiVie
 | `interactionLock` | `DrawingLayer`가 `tool !== "cursor"`일 때 자동 관리 |
 | `getCellByCoordinatesRef` | `PointLayer`에 `ref` 전달 → `ref.current.queryAt(coordinate)` |
 
-### 아직 미지원 (WsiViewerCanvas 유지 필요)
+### 아직 1:1 대체 없음 (앱 쪽에서 조합)
 
-| 기존 prop | 상태 |
+| 기존 prop | 대안 (v1.4.4) |
 |---|---|
-| `customLayers` | WsiViewer에 미구현 |
-| `onRoiPointGroups` | 대응 레이어 없음 |
-| `roiPaletteIndexToTermId` | 대응 레이어 없음 |
+| `customLayers` | `useViewerContext()` + 호스트 React 오버레이 (`worldToScreen` 등) |
+| `onRoiPointGroups` / `roiPaletteIndexToTermId` | `computeRoiPointGroups(pointData, regions, options)` 를 뷰어 밖에서 호출 |
 
-이 props를 사용하는 경우 해당 부분은 `WsiViewerCanvas`를 유지하거나, 향후 릴리스를 기다려야 합니다.
+`WsiViewerCanvas`는 패키지에서 제거되었으므로, 위 기능은 **반드시** 새 API 또는 유틸로 이전해야 합니다.
 
 ---
 
@@ -534,13 +536,13 @@ function MyCustomOverlay() {
 
 ## 마이그레이션 체크리스트
 
-- [ ] `open-plant` 버전을 `1.4.0`으로 업데이트
-- [ ] (선택) `WsiViewerCanvas`를 `WsiViewer` + 레이어 컴포넌트로 교체
+- [ ] `open-plant`를 **`1.4.4`**(또는 원하는 최신)로 업데이트
+- [ ] **`WsiViewerCanvas` import 제거** → `WsiViewer` + `PointLayer` / `RegionLayer` / `DrawingLayer` 등으로 교체
 - [ ] props 이름 변경 적용 (위 매핑표 참조)
-- [ ] `interactionLock` prop 제거 — `DrawingLayer`가 자동 관리
-- [ ] `getCellByCoordinatesRef` → `PointLayer` ref + `queryAt()` 패턴으로 변경
-- [ ] `regionLabelStyle` + `resolveRegionLabelStyle` → 통합 `labelStyle` prop으로 변경
-- [ ] `overviewMapConfig` 3단 중첩 → `OverviewMap` 컴포넌트 flat props로 변경
-- [ ] (선택) `DrawTool` 매직 스트링 stamp → 구조화 `{ stamp: StampToolConfig }` 전환
-- [ ] (선택) `DrawTool` 매핑에서 `"eraser"`, `"region-brush"`, `"region-eraser"` 활용
-- [ ] `customLayers`, `onRoiPointGroups`, `roiPaletteIndexToTermId` 사용 시 `WsiViewerCanvas` 유지 확인
+- [ ] `interactionLock` 제거 — `DrawingLayer`가 `tool !== "cursor"`일 때 자동 처리
+- [ ] `getCellByCoordinatesRef` → `PointLayer` ref + `queryAt()` 로 변경
+- [ ] `regionLabelStyle` + `resolveRegionLabelStyle` → `RegionLayer`의 통합 `labelStyle` 로 변경
+- [ ] `overviewMapConfig` → 별도 `<OverviewMap projectorRef={...} invalidateRef={...} />` 패턴
+- [ ] (선택) `DrawTool` stamp 문자열 → `{ stamp: StampToolConfig }`
+- [ ] `customLayers` → `useViewerContext` 기반 호스트 오버레이
+- [ ] `onRoiPointGroups` → `computeRoiPointGroups()` 호출로 대체

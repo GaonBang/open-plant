@@ -35,14 +35,14 @@
       <div class="layout">
         <aside class="sidebar">
           <h2>API</h2>
-          <a href="#composition-api">WsiViewer (v1.4)</a>
+          <a href="#composition-api">WsiViewer (v1.4.4)</a>
           <a href="#point-layer">PointLayer</a>
           <a href="#region-layer">RegionLayer</a>
           <a href="#drawing-layer">DrawingLayer</a>
           <a href="#patch-layer">PatchLayer</a>
           <a href="#overlay-layer">OverlayLayer</a>
           <a href="#viewer-context">ViewerContext</a>
-          <a href="#wsi-viewer">WsiViewerCanvas (legacy)</a>
+          <a href="#wsi-viewer">Legacy WsiViewerCanvas (removed v1.4.4)</a>
           <a href="#draw-layer">DrawLayer</a>
           <a href="#tile-viewer">TileViewerCanvas</a>
           <a href="#types">Core types</a>
@@ -59,11 +59,11 @@
           </section>
 
           <section class="panel reveal" id="composition-api">
-            <h2>`WsiViewer` — Composition API (v1.4.0)</h2>
+            <h2>`WsiViewer` — Composition API (v1.4.4)</h2>
             <p>
-              The new declarative layer composition API replaces the monolithic <code>WsiViewerCanvas</code>.
+              Declarative layer composition API. The monolithic <code>WsiViewerCanvas</code> was removed in <strong>v1.4.4</strong>.
               <code>WsiViewer</code> manages the WebGL and overlay canvases, provides <code>ViewerContext</code>,
-              and renders child layer components. See <a href="migration-guide.html#v140">v1.4.0 migration</a>.
+              and renders child layer components. See <a href="migration-guide.html#v140">migration guide</a>.
             </p>
             <table>
               <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
@@ -85,9 +85,6 @@
                 <tr><td><code>viewTransition</code></td><td><code>WsiViewTransitionOptions</code></td><td>Camera transition animation.</td></tr>
                 <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>Magnification snap stops.</td></tr>
                 <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>Treat fit zoom as snap lower bound.</td></tr>
-                <tr><td><code>pointSizeByZoom</code></td><td><code>PointSizeByZoom</code></td><td>Initial point size stops (also settable via PointLayer).</td></tr>
-                <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>Initial point stroke scale.</td></tr>
-                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>Initial point inner fill opacity.</td></tr>
                 <tr><td><code>onPointerWorldMove</code></td><td><code>(event: PointerWorldMoveEvent) =&gt; void</code></td><td>World-coordinate pointer stream callback.</td></tr>
                 <tr><td><code>debugOverlay</code></td><td><code>boolean</code></td><td>Runtime debug HUD.</td></tr>
                 <tr><td><code>debugOverlayStyle</code></td><td><code>CSSProperties</code></td><td>Debug HUD style override.</td></tr>
@@ -209,80 +206,15 @@
           </section>
 
           <section class="panel reveal" id="wsi-viewer">
-            <h2>`WsiViewerCanvas` props <span style="color:#b33; font-size:0.75em;">(deprecated — use WsiViewer)</span></h2>
-            <table>
-              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>source</code></td><td><code>WsiImageSource | null</code></td><td>Image source metadata.</td></tr>
-                <tr><td><code>authToken</code></td><td><code>string</code></td><td>Authorization header token when required.</td></tr>
-                <tr><td><code>viewState</code></td><td><code>Partial&lt;WsiViewState&gt;</code></td><td>Controlled zoom/offset/rotation state (<code>rotationDeg</code>).</td></tr>
-                <tr><td><code>onViewStateChange</code></td><td><code>(next) =&gt; void</code></td><td>Camera state callback.</td></tr>
-                <tr><td><code>imageColorSettings</code></td><td><code>WsiImageColorSettings | null</code></td><td>Tile-only brightness/contrast/saturation input (<code>[-100, 100]</code>). Point/ROI/draw overlay colors are unaffected.</td></tr>
-                <tr><td><code>onStats</code></td><td><code>(stats: WsiRenderStats) =&gt; void</code></td><td>Per-frame observability event. Includes tile/point counters plus queue/failure/cache-hit metrics and frame time.</td></tr>
-                <tr><td><code>onTileError</code></td><td><code>(event) =&gt; void</code></td><td>Tile load failure callback with tile info, error object, and retry attempt count.</td></tr>
-                <tr><td><code>onContextLost</code></td><td><code>() =&gt; void</code></td><td>Called when WebGL context is lost and render loop is paused.</td></tr>
-                <tr><td><code>onContextRestored</code></td><td><code>() =&gt; void</code></td><td>Called after renderer rebuilds GPU state on context restore.</td></tr>
-                <tr><td><code>debugOverlay</code></td><td><code>boolean</code></td><td>Enables built-in runtime debug HUD overlay. Default: <code>false</code>.</td></tr>
-                <tr><td><code>debugOverlayStyle</code></td><td><code>CSSProperties</code></td><td>Style override for the built-in debug HUD.</td></tr>
-                <tr><td><code>fitNonce</code></td><td><code>number</code></td><td>Re-triggers fit-to-image when changed.</td></tr>
-                <tr><td><code>rotationResetNonce</code></td><td><code>number</code></td><td>Calls rotation reset when changed.</td></tr>
-                <tr><td><code>ctrlDragRotate</code></td><td><code>boolean</code></td><td>Enables <code>Ctrl/Cmd + drag</code> rotate interaction. Default: <code>true</code>.</td></tr>
-                <tr><td><code>minZoom</code></td><td><code>number</code></td><td>Minimum zoom override. If omitted, renderer uses <code>fitZoom * 0.5</code>. Applied to wheel, double-click, <code>setViewState</code>, and <code>fitToImage</code>.</td></tr>
-                <tr><td><code>maxZoom</code></td><td><code>number</code></td><td>Maximum zoom override. If omitted, renderer uses <code>fitZoom * 8</code>.</td></tr>
-                <tr><td><code>viewTransition</code></td><td><code>{ duration?: number; easing?: (t) =&gt; number }</code></td><td>Default camera transition for view updates. Duration is clamped to <code>0..2000ms</code>.</td></tr>
-                <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>Magnification snap stops (for example <code>[1.25, 2.5, 5, 10, 20, 40]</code>). Internally normalized with <code>source.mpp</code>.</td></tr>
-                <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>If true, snap-out treats fit zoom as the lower bound.</td></tr>
-                <tr><td><code>pointData</code></td><td><code>WsiPointData | null</code></td><td>Point position + palette index buffers (optional <code>ids</code> supported for point hit-test).</td></tr>
-                <tr><td><code>pointPalette</code></td><td><code>Uint8Array | null</code></td><td>RGBA palette texture data.</td></tr>
-                <tr><td><code>pointSizeByZoom</code></td><td><code>Record&lt;number, number&gt;</code></td><td>Custom point size(px) stops by continuous zoom level. Values between stops are linearly interpolated.</td></tr>
-                <tr><td><code>pointStrokeScale</code></td><td><code>number</code></td><td>Point ring stroke thickness scale.</td></tr>
-                <tr><td><code>pointInnerFillOpacity</code></td><td><code>number</code></td><td>Point inner fill opacity in range <code>0..1</code>.</td></tr>
-                <tr><td><code>roiRegions</code></td><td><code>WsiRegion[]</code></td><td>Persisted ROI list with labels.</td></tr>
-                <tr><td><code>roiPolygons</code></td><td><code>DrawCoordinate[][]</code></td><td>Simplified polygon-only ROI input.</td></tr>
-                <tr><td><code>clipPointsToRois</code></td><td><code>boolean</code></td><td>Render only points inside ROI polygons.</td></tr>
-                <tr><td><code>clipMode</code></td><td><code>"sync" | "worker" | "hybrid-webgpu"</code></td><td>ROI clip execution mode. Default is <code>"worker"</code>.</td></tr>
-                <tr><td><code>onClipStats</code></td><td><code>(event) =&gt; void</code></td><td>Clip timing/result callback: mode, duration, input/output count, WebGPU usage, and draw-bridge flag (<code>bridgedToDraw</code>).</td></tr>
-                <tr><td><code>onRoiPointGroups</code></td><td><code>(stats) =&gt; void</code></td><td>ROI term count callback derived from current points + regions.</td></tr>
-                <tr><td><code>roiPaletteIndexToTermId</code></td><td><code>ReadonlyMap&lt;number,string&gt; | string[]</code></td><td>Optional palette-index to term-id map used by ROI term group callback.</td></tr>
-                <tr><td><code>interactionLock</code></td><td><code>boolean</code></td><td>Locks pan/zoom interactions.</td></tr>
-                <tr><td><code>drawTool</code></td><td><code>"cursor" | "freehand" | "rectangle" | "circular" | "brush" | StampDrawTool</code></td><td>Active draw tool. <code>stamp-rectangle-4096px</code> emits patch intent. Brush emits <code>intent: "brush"</code> on completion.</td></tr>
-                <tr><td><code>stampOptions</code></td><td><code>{ rectangleAreaMm2?: number; circleAreaMm2?: number; rectanglePixelSize?: number }</code></td><td>Stamp size configuration from outside the library. Defaults are 2mm² for area stamps and 4096px for fixed-pixel rectangle stamp.</td></tr>
-                <tr><td><code>brushOptions</code></td><td><code>BrushOptions</code></td><td>Brush radius/detail/smoothing/cursor options. Radius is HTML/CSS px and stays zoom-invariant on screen.</td></tr>
-                <tr><td><code>drawFillColor</code></td><td><code>string</code></td><td>Preview fill color for freehand/rectangle/circular while drawing. Default: <code>transparent</code>.</td></tr>
-                <tr><td><code>patchRegions</code></td><td><code>WsiRegion[]</code></td><td>Patch-only persisted polygons rendered independently from ROI selection/hover state.</td></tr>
-                <tr><td><code>patchStrokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Patch-only stroke style override (default: dashed cyan).</td></tr>
-                <tr><td><code>regionStrokeStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Persisted region stroke override.</td></tr>
-                <tr><td><code>regionStrokeHoverStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Stroke override while hovering a region.</td></tr>
-                <tr><td><code>regionStrokeActiveStyle</code></td><td><code>Partial&lt;RegionStrokeStyle&gt;</code></td><td>Stroke override for active region (including shadow).</td></tr>
-                <tr><td><code>resolveRegionStrokeStyle</code></td><td><code>(context) =&gt; Partial&lt;RegionStrokeStyle&gt;</code></td><td>Per-region/per-state dynamic stroke resolver.</td></tr>
-                <tr><td><code>resolveRegionLabelStyle</code></td><td><code>(context) =&gt; Partial&lt;RegionLabelStyle&gt;</code></td><td>Per-region dynamic label style resolver (for zoom-aware <code>offsetY</code> etc).</td></tr>
-                <tr><td><code>overlayShapes</code></td><td><code>DrawOverlayShape[]</code></td><td>Custom overlay shapes rendered by DrawLayer (supports polygon stroke and inverted-fill mask).</td></tr>
-                <tr><td><code>customLayers</code></td><td><code>WsiCustomLayer[]</code></td><td>Custom React overlay layer slots with world/screen converters and redraw trigger.</td></tr>
-                <tr><td><code>regionLabelStyle</code></td><td><code>Partial&lt;RegionLabelStyle&gt;</code></td><td>Persisted region label override.</td></tr>
-                <tr><td><code>regionLabelAnchor</code></td><td><code>"top-center" | "centroid"</code></td><td>Label anchor mode used for hit area and placement.</td></tr>
-                <tr><td><code>drawAreaTooltip</code></td><td><code>DrawAreaTooltipOptions</code></td><td>Realtime mm² tooltip during freehand/rectangle/circular drawing.</td></tr>
-                <tr><td><code>autoLiftRegionLabelAtMaxZoom</code></td><td><code>boolean</code></td><td>When true, labels animate upward by 20px when view reaches <code>maxZoom</code> and animate back when leaving max zoom.</td></tr>
-                <tr><td><code>clampRegionLabelToViewport</code></td><td><code>boolean</code></td><td>Clamps region labels to viewport bounds.</td></tr>
-                <tr><td><code>onPointerWorldMove</code></td><td><code>(event) =&gt; void</code></td><td>World-coordinate pointer stream callback for custom coordinate HUD.</td></tr>
-                <tr><td><code>onPointHover</code></td><td><code>(event) =&gt; void</code></td><td>Nearest point hover event in cursor mode. Emits <code>index/id</code> or <code>null</code> when no hit.</td></tr>
-                <tr><td><code>onPointClick</code></td><td><code>(event) =&gt; void</code></td><td>Nearest point click event in cursor mode (left/right button info included).</td></tr>
-                <tr><td><code>getCellByCoordinatesRef</code></td><td><code>MutableRefObject&lt;(coord) =&gt; PointHitEvent | null&gt;</code></td><td>Imperative world-coordinate point hit-test resolver.</td></tr>
-                <tr><td><code>onRegionHover</code></td><td><code>(event) =&gt; void</code></td><td>Region hover event in cursor mode.</td></tr>
-                <tr><td><code>onRegionClick</code></td><td><code>(event) =&gt; void</code></td><td>Region click event in cursor mode.</td></tr>
-                <tr><td><code>activeRegionId</code></td><td><code>string | number | null</code></td><td>Controlled active region id. If omitted, component runs in uncontrolled mode.</td></tr>
-                <tr><td><code>onActiveRegionChange</code></td><td><code>(regionId) =&gt; void</code></td><td>Active region changed event. Default behavior toggles off when clicking the same region, and clears on empty-space click.</td></tr>
-                <tr><td><code>onDrawComplete</code></td><td><code>(result) =&gt; void</code></td><td>Draw completion callback payload with <code>intent: "roi" | "patch" | "brush"</code>.</td></tr>
-                <tr><td><code>onPatchComplete</code></td><td><code>(result) =&gt; void</code></td><td>Patch-only callback, emitted for <code>stamp-rectangle-4096px</code>.</td></tr>
-                <tr><td><code>overviewMapConfig</code></td><td><code>OverviewMapConfig</code></td><td>Overview map toggles/options/styles.</td></tr>
-                <tr><td><code>className</code></td><td><code>string</code></td><td>Root container class name.</td></tr>
-                <tr><td><code>style</code></td><td><code>CSSProperties</code></td><td>Root container style.</td></tr>
-              </tbody>
-            </table>
+            <h2>Legacy <code>WsiViewerCanvas</code> <span style="color:#b33;">removed in v1.4.4+</span></h2>
+            <p>The monolithic <code>WsiViewerCanvas</code> component and <code>WsiViewerCanvasProps</code> are <strong>no longer exported</strong> from <code>open-plant</code> as of <strong>v1.4.4</strong>.</p>
+            <ul>
+              <li><strong>Upgrade:</strong> use <code>WsiViewer</code> + layer components (see sections above) and the <a href="../migration-1.4.0.md">migration guide</a>.</li>
+              <li><strong>Stay on the legacy API temporarily:</strong> pin <code>"open-plant": "1.4.3"</code> (or the last version that still shipped <code>WsiViewerCanvas</code> in your lockfile).</li>
+              <li><strong>Historical prop list:</strong> preserved in git history and in <code>migration-1.4.0.md</code> mapping tables.</li>
+            </ul>
             <div class="callout">
-              Region hit-test in cursor mode is constrained to contour + label area. Region interior fill is intentionally excluded.
-            </div>
-            <div class="callout">
-              Tile color correction normalization: <code>brightness / 200</code>, <code>contrast / 100</code>, <code>saturation / 100</code>. It applies to tile shader only.
+              ROI term groups: call <code>computeRoiPointGroups()</code> from app code instead of <code>onRoiPointGroups</code>. <code>customLayers</code> has no direct replacement — use <code>useViewerContext</code> + a host React overlay.
             </div>
           </section>
 

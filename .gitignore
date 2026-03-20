@@ -9,3 +9,5 @@ dist
 .npmrc
 playwright-report
 test-results
+
+.playwright-mcp/*

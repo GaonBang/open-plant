@@ -79,7 +79,7 @@ const pointZstUrl = raw?.mvtPath || "";</code></pre>
 
           <section class="panel reveal" id="minimal">
             <h2>3. Minimal viewer mount</h2>
-            <h3>v1.4.0 Composition API (recommended)</h3>
+            <h3>Composition API (v1.4.4)</h3>
             <pre><code class="language-tsx">import { useState } from "react";
 import { WsiViewer } from "open-plant";
 
@@ -98,30 +98,15 @@ function Viewer({ source, token }) {
     /&gt;
   );
 }</code></pre>
-            <h3>Legacy (WsiViewerCanvas — still supported)</h3>
-            <pre><code class="language-tsx">import { useState } from "react";
-import { WsiViewerCanvas } from "open-plant";
-
-function Viewer({ source, token }) {
-  const [viewState, setViewState] = useState();
-
-  return (
-    &lt;WsiViewerCanvas
-      source={source}
-      authToken={token}
-      viewState={viewState}
-      onViewStateChange={setViewState}
-      ctrlDragRotate
-      onStats={(stats) =&gt; console.log(stats)}
-      style={{ width: "100vw", height: "100vh" }}
-    /&gt;
-  );
-}</code></pre>
+            <div class="callout">
+              <code>WsiViewerCanvas</code> was removed from the npm package in <strong>v1.4.4</strong>.
+              To keep the old single component temporarily, pin <code>"open-plant": "1.4.3"</code> (or your last lockfile version that still exported it).
+            </div>
           </section>
 
           <section class="panel reveal" id="camera-color">
             <h2>4. Camera bounds/transition + tile color</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+            <pre><code class="language-tsx">&lt;WsiViewer
   source={source}
   imageColorSettings={{
     brightness: 0,
@@ -131,12 +116,13 @@ function Viewer({ source, token }) {
   minZoom={0.25}
   maxZoom={1}
   viewTransition={{ duration: 300 }}
-  autoLiftRegionLabelAtMaxZoom
-/&gt;</code></pre>
+&gt;
+  &lt;RegionLayer regions={regions} autoLiftLabelAtMaxZoom /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <p>
               Color settings are applied to the tile shader only. Point/cell markers, ROI, and draw overlay keep original colors.
             </p>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+            <pre><code class="language-tsx">&lt;WsiViewer
   source={source}
   zoomSnaps={[1.25, 2.5, 5, 10, 20, 40]}
   zoomSnapFitAsMin
@@ -165,53 +151,52 @@ const pointData = {
   paletteIndices,
   fillModes, // optional Uint8Array (0: ring, 1: solid)
 };</code></pre>
-            <h3>v1.4.0 Composition API</h3>
-            <pre><code class="language-tsx">&lt;WsiViewer source={source} authToken={toBearerToken(token)}&gt;
+            <h3>Composition API</h3>
+            <pre><code class="language-tsx">import { WsiViewer, PointLayer } from "open-plant";
+
+&lt;WsiViewer source={source} authToken={toBearerToken(token)}&gt;
   &lt;PointLayer data={pointData} palette={termPalette.colors} /&gt;
 &lt;/WsiViewer&gt;</code></pre>
-            <h3>Legacy</h3>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  authToken={toBearerToken(token)}
-  pointData={pointData}
-  pointPalette={termPalette.colors}
-/&gt;</code></pre>
           </section>
 
           <section class="panel reveal" id="roi">
             <h2>6. ROI polygon clipping</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  pointPalette={termPalette.colors}
-  roiRegions={[
-    {
-      id: "roi-1",
-      label: "Tumor Core",
-      coordinates: [
-        [12000, 14000],
-        [18000, 14000],
-        [18000, 20000],
-        [12000, 20000],
-        [12000, 14000],
-      ],
-    },
-  ]}
-  clipPointsToRois
-/&gt;</code></pre>
+            <pre><code class="language-tsx">const roiRegions = [
+  {
+    id: "roi-1",
+    label: "Tumor Core",
+    coordinates: [
+      [12000, 14000],
+      [18000, 14000],
+      [18000, 20000],
+      [12000, 20000],
+      [12000, 14000],
+    ],
+  },
+];
+
+&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer
+    data={pointData}
+    palette={termPalette.colors}
+    clipEnabled
+    clipToRegions={roiRegions}
+  /&gt;
+  &lt;RegionLayer regions={roiRegions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
           </section>
 
           <section class="panel reveal" id="roi-stats">
-            <h2>7. ROI term stats callback</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  roiRegions={regions}
-  roiPaletteIndexToTermId={new Map([[1, "negative"], [2, "positive"]])}
-  onRoiPointGroups={(stats) =&gt; {
-    // stats.groups -> per-ROI term counts
-  }}
-/&gt;</code></pre>
+            <h2>7. ROI term stats</h2>
+            <p>
+              <code>onRoiPointGroups</code> was removed with <code>WsiViewerCanvas</code>. Call <code>computeRoiPointGroups</code> when your data changes:
+            </p>
+            <pre><code class="language-ts">import { computeRoiPointGroups } from "open-plant";
+
+const stats = computeRoiPointGroups(pointData, regions, {
+  paletteIndexToTermId: new Map([[1, "negative"], [2, "positive"]]),
+});
+// stats.groups -&gt; per-ROI term counts</code></pre>
           </section>
 
           <section class="panel reveal" id="clip-accel">
@@ -220,17 +205,19 @@ const pointData = {
 
 const caps = await getWebGpuCapabilities();
 const clipMode = caps.supported ? "hybrid-webgpu" : "worker";</code></pre>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  pointPalette={termPalette.colors}
-  roiRegions={regions}
-  clipPointsToRois
-  clipMode={clipMode} // "sync" | "worker" | "hybrid-webgpu"
-  onClipStats={(stats) =&gt; {
-    console.log(stats.mode, stats.durationMs, stats.outputCount);
-  }}
-/&gt;</code></pre>
+            <pre><code class="language-tsx">&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer
+    data={pointData}
+    palette={termPalette.colors}
+    clipEnabled
+    clipToRegions={regions}
+    clipMode={clipMode}
+    onClipStats={(stats) =&gt; {
+      console.log(stats.mode, stats.durationMs, stats.outputCount);
+    }}
+  /&gt;
+  &lt;RegionLayer regions={regions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <div class="callout">
               <strong>Recommended default:</strong> use <code>clipMode="worker"</code>.
               Switch to <code>hybrid-webgpu</code> only after measuring with your real dataset.

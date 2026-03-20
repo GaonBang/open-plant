@@ -61,7 +61,7 @@
 
           <section class="panel reveal" id="toolbar">
             <h2>1. Toolbar state</h2>
-            <h3>v1.4.0 — DrawingLayer (recommended)</h3>
+            <h3>v1.4.4 — DrawingLayer</h3>
             <pre><code class="language-tsx">const [drawTool, setDrawTool] = useState("cursor");
 
 &lt;button onClick={() =&gt; setDrawTool("freehand")}&gt;Freehand&lt;/button&gt;
@@ -81,14 +81,9 @@
               <code>"eraser"</code>, <code>"region-brush"</code>, <code>"region-eraser"</code>, and structured stamp
               <code>{ stamp: { shape, areaMm2?, pixelSize? } }</code>.
             </div>
-            <h3>Legacy — WsiViewerCanvas</h3>
-            <pre><code class="language-tsx">const [drawTool, setDrawTool] = useState("cursor");
-
-&lt;WsiViewerCanvas
-  source={source}
-  drawTool={drawTool}
-  interactionLock={drawTool !== "cursor"}
-/&gt;</code></pre>
+            <div class="callout">
+              <code>WsiViewerCanvas</code> was removed in <strong>open-plant@1.4.4</strong>. Pin <code>1.4.3</code> only for emergency legacy access.
+            </div>
           </section>
 
           <section class="panel reveal" id="complete">
@@ -104,28 +99,41 @@
 const onPatchComplete = (patch) =&gt; {
   // patch.tool === "stamp-rectangle-4096px"
   setPatchRegions((prev) =&gt; [...prev, { id: Date.now(), coordinates: patch.coordinates }]);
-};</code></pre>
+};
+
+&lt;WsiViewer source={source}&gt;
+  {drawTool !== "cursor" &amp;&amp;
+    &lt;DrawingLayer
+      tool={drawTool}
+      onComplete={onDrawComplete}
+      onPatchComplete={onPatchComplete}
+    /&gt;}
+&lt;/WsiViewer&gt;</code></pre>
             <div class="callout">Press <code>Esc</code> to cancel an active drawing gesture. Stamp tools complete on click.</div>
           </section>
 
           <section class="panel reveal" id="brush-ux">
             <h2>3. Brush UX (screen-fixed radius + tap-to-select)</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  drawTool="brush"
-  brushOptions={{
-    radius: 24,           // HTML/CSS px (screen-fixed)
-    edgeDetail: 1.5,
-    edgeSmoothing: 2,
-    clickSelectRoi: true, // tap on ROI in brush mode selects ROI first
-  }}
-  onDrawComplete={(result) =&gt; {
-    // brush stroke completion -> result.intent === "brush"
-  }}
-  onRegionClick={(event) =&gt; {
-    // emitted when clickSelectRoi=true and tap hits ROI contour/label
-  }}
-/&gt;</code></pre>
+            <pre><code class="language-tsx">&lt;WsiViewer source={source}&gt;
+  &lt;RegionLayer
+    regions={regions}
+    onClick={(event) =&gt; {
+      // when clickSelectRoi=true and tap hits ROI contour/label
+    }}
+  /&gt;
+  &lt;DrawingLayer
+    tool="brush"
+    brushOptions={{
+      radius: 24,
+      edgeDetail: 1.5,
+      edgeSmoothing: 2,
+      clickSelectRoi: true,
+    }}
+    onComplete={(result) =&gt; {
+      // result.intent === "brush"
+    }}
+  /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <p>
               With <code>clickSelectRoi=true</code>, a brush tap on ROI selects/toggles active ROI first.
               A tap outside ROI behaves as a normal brush stroke.
@@ -138,15 +146,16 @@ const onPatchComplete = (patch) =&gt; {
 const [circleAreaMm2, setCircleAreaMm2] = useState(2);
 const [rectPixelSize, setRectPixelSize] = useState(4096);
 
-&lt;WsiViewerCanvas
-  source={source}
-  drawTool={drawTool}
-  stampOptions={{
-    rectangleAreaMm2: rectAreaMm2,
-    circleAreaMm2: circleAreaMm2,
-    rectanglePixelSize: rectPixelSize,
-  }}
-/&gt;</code></pre>
+&lt;WsiViewer source={source}&gt;
+  &lt;DrawingLayer
+    tool={drawTool}
+    stampOptions={{
+      rectangleAreaMm2: rectAreaMm2,
+      circleAreaMm2: circleAreaMm2,
+      rectanglePixelSize: rectPixelSize,
+    }}
+  /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <p>
               <code>mpp</code> means <em>microns per pixel</em> at native level (<code>maxTierZoom</code>).
               Stamp area in mm² is converted using <code>mpp</code> plus current zoom, so physical size remains consistent while zooming.
@@ -155,7 +164,7 @@ const [rectPixelSize, setRectPixelSize] = useState(4096);
 
           <section class="panel reveal" id="persist">
             <h2>5. Persist regions and labels</h2>
-            <h3>v1.4.0 — Composition API</h3>
+            <h3>Composition API</h3>
             <pre><code class="language-tsx">const [regions, setRegions] = useState([]);
 
 const handleDrawComplete = (result) =&gt; {
@@ -171,101 +180,90 @@ const handleDrawComplete = (result) =&gt; {
   {drawTool !== "cursor" &amp;&amp;
     &lt;DrawingLayer tool={drawTool} onComplete={handleDrawComplete} /&gt;}
 &lt;/WsiViewer&gt;</code></pre>
-            <h3>Legacy</h3>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  drawTool={drawTool}
-  roiRegions={regions}
-  onDrawComplete={handleDrawComplete}
-/&gt;</code></pre>
             <p>Labels are painted last and anchored to the top edge of each region.</p>
           </section>
 
           <section class="panel reveal" id="style">
             <h2>6. External interaction + style control</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
+            <pre><code class="language-tsx">&lt;WsiViewer
   source={source}
-  roiRegions={regions}
-  activeRegionId={selectedRoiId} // controlled mode
-  onActiveRegionChange={setSelectedRoiId}
-  drawFillColor="transparent"
-  patchRegions={patches}
-  patchStrokeStyle={{ color: "#8ad8ff", width: 2, lineDash: [10, 8] }}
-  regionStrokeStyle={{
-    color: "#ffd166",
-    width: 2.5,
-  }}
-  regionStrokeHoverStyle={{
-    color: "#ff2f2f",
-    width: 3,
-  }}
-  regionStrokeActiveStyle={{
-    color: "#ff2f2f",
-    width: 3,
-    shadowColor: "rgba(255, 47, 47, 0.95)",
-    shadowBlur: 12,
-    shadowOffsetX: 0,
-    shadowOffsetY: 0,
-  }}
-  resolveRegionStrokeStyle={(ctx) =&gt; {
-    if (ctx.state === "hover") return { color: "#ff2f2f", width: 3 };
-    if (ctx.state === "active") return { color: "#ff2f2f", width: 3.2, shadowBlur: 12 };
-  }}
-  resolveRegionLabelStyle={({ zoom }) =&gt; ({
-    offsetY: zoom &gt; 4 ? -20 : -10,
-  })}
-  autoLiftRegionLabelAtMaxZoom
-  drawAreaTooltip={{
-    enabled: true,
-    format: (areaMm2) =&gt; `${areaMm2.toFixed(3)} mm²`,
-    cursorOffset: { x: 16, y: -24 },
-  }}
-  overlayShapes={[
-    {
-      id: "weak-positive-area",
-      coordinates: [
-        [[1000,1000],[3000,1000],[3000,3000],[1000,3000]],
-        [[3400,1200],[4300,1200],[4300,2300],[3400,2300]],
-      ],
-      closed: true,
-      stroke: { color: "#CB59FF", width: 3, lineDash: [5, 5] },
-      invertedFill: { fillColor: "rgba(0, 0, 0, 0.15)" },
-      visible: true,
-    },
-  ]}
   onPointerWorldMove={(event) =&gt; {
-    // event.coordinate -> [x, y] | null
+    // event.coordinate -&gt; [x, y] | null
   }}
-  regionLabelStyle={{
-    fontFamily: "IBM Plex Mono, monospace",
-    fontSize: 12,
-    textColor: "#fff4cc",
-    backgroundColor: "rgba(8, 14, 22, 0.9)",
-    borderColor: "#ffd166",
-    borderWidth: 1,
-    paddingX: 8,
-    paddingY: 4,
-    offsetY: 12,
-    borderRadius: 4,
-  }}
-  onRegionHover={(event) =&gt; {
-    // event.regionId, event.regionIndex, event.coordinate
-  }}
-  onRegionClick={(event) =&gt; {
-    // event.regionId, event.region, event.coordinate
-  }}
-  onPatchComplete={(patch) =&gt; {
-    // patch-only completion callback
-  }}
-  customLayers={[
-    {
-      id: "patch-label-layer",
-      render: ({ worldToScreen }) =&gt; {
-        // host-owned overlay with world/screen transform
+&gt;
+  &lt;RegionLayer
+    regions={regions}
+    activeRegionId={selectedRoiId}
+    onActiveChange={setSelectedRoiId}
+    strokeStyle={{ color: "#ffd166", width: 2.5 }}
+    hoverStrokeStyle={{ color: "#ff2f2f", width: 3 }}
+    activeStrokeStyle={{
+      color: "#ff2f2f",
+      width: 3,
+      shadowColor: "rgba(255, 47, 47, 0.95)",
+      shadowBlur: 12,
+      shadowOffsetX: 0,
+      shadowOffsetY: 0,
+    }}
+    resolveStrokeStyle={(ctx) =&gt; {
+      if (ctx.state === "hover") return { color: "#ff2f2f", width: 3 };
+      if (ctx.state === "active") return { color: "#ff2f2f", width: 3.2, shadowBlur: 12 };
+      return {};
+    }}
+    labelStyle={({ zoom }) =&gt; ({
+      fontFamily: "IBM Plex Mono, monospace",
+      fontSize: 12,
+      textColor: "#fff4cc",
+      backgroundColor: "rgba(8, 14, 22, 0.9)",
+      borderColor: "#ffd166",
+      borderWidth: 1,
+      paddingX: 8,
+      paddingY: 4,
+      offsetY: zoom &gt; 4 ? -20 : 12,
+      borderRadius: 4,
+    })}
+    autoLiftLabelAtMaxZoom
+    onHover={(event) =&gt; {
+      // event.regionId, event.regionIndex, event.coordinate
+    }}
+    onClick={(event) =&gt; {
+      // event.regionId, event.region, event.coordinate
+    }}
+  /&gt;
+  &lt;PatchLayer
+    regions={patches}
+    strokeStyle={{ color: "#8ad8ff", width: 2, lineDash: [10, 8] }}
+  /&gt;
+  &lt;OverlayLayer
+    shapes={[
+      {
+        id: "weak-positive-area",
+        coordinates: [
+          [[1000, 1000], [3000, 1000], [3000, 3000], [1000, 3000]],
+          [[3400, 1200], [4300, 1200], [4300, 2300], [3400, 2300]],
+        ],
+        closed: true,
+        stroke: { color: "#CB59FF", width: 3, lineDash: [5, 5] },
+        invertedFill: { fillColor: "rgba(0, 0, 0, 0.15)" },
+        visible: true,
       },
-    },
-  ]}
-/&gt;</code></pre>
+    ]}
+  /&gt;
+  &lt;DrawingLayer
+    fillColor="transparent"
+    areaTooltip={{
+      enabled: true,
+      format: (areaMm2) =&gt; `${areaMm2.toFixed(3)} mm²`,
+      cursorOffset: { x: 16, y: -24 },
+    }}
+    onPatchComplete={(patch) =&gt; {
+      // patch-only completion callback
+    }}
+  /&gt;
+&lt;/WsiViewer&gt;</code></pre>
+            <div class="callout">
+              <code>customLayers</code> has no built-in replacement — use <code>useViewerContext()</code> (<code>worldToScreen</code>, <code>requestOverlayRedraw</code>) from a host React overlay.
+            </div>
             <p>
               Region hit-test in cursor mode targets contour + label only (region interior fill is excluded).
               If <code>activeRegionId</code> is omitted, the viewer falls back to uncontrolled active state.
@@ -274,17 +272,19 @@ const handleDrawComplete = (result) =&gt; {
 
           <section class="panel reveal" id="clip">
             <h2>7. Render cells only inside drawn regions</h2>
-            <pre><code class="language-tsx">&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  pointPalette={pointPalette}
-  roiRegions={regions}
-  clipPointsToRois
-  clipMode="worker"
-  onClipStats={(stats) =&gt; {
-    console.log(stats.mode, stats.durationMs, stats.outputCount);
-  }}
-/&gt;</code></pre>
+            <pre><code class="language-tsx">&lt;WsiViewer source={source}&gt;
+  &lt;PointLayer
+    data={pointData}
+    palette={pointPalette}
+    clipEnabled
+    clipToRegions={regions}
+    clipMode="worker"
+    onClipStats={(stats) =&gt; {
+      console.log(stats.mode, stats.durationMs, stats.outputCount);
+    }}
+  /&gt;
+  &lt;RegionLayer regions={regions} /&gt;
+&lt;/WsiViewer&gt;</code></pre>
             <p>
               <code>clipMode</code> controls ROI filtering runtime:
               <code>sync</code> (main thread), <code>worker</code> (recommended), and
@@ -299,15 +299,10 @@ const handleDrawComplete = (result) =&gt; {
 const stats = computeRoiPointGroups(pointData, regions, {
   paletteIndexToTermId: ["bg", "negative", "positive"],
 });
-
-&lt;WsiViewerCanvas
-  source={source}
-  pointData={pointData}
-  roiRegions={regions}
-  onRoiPointGroups={(result) =&gt; {
-    // result.groups -> [{ regionId, totalCount, termCounts[] }]
-  }}
-/&gt;</code></pre>
+// stats.groups -&gt; [{ regionId, totalCount, termCounts[] }]</code></pre>
+            <p>
+              Call <code>computeRoiPointGroups</code> when <code>pointData</code> or <code>regions</code> change — it replaces the removed <code>onRoiPointGroups</code> prop from legacy <code>WsiViewerCanvas</code>.
+            </p>
           </section>
 
           <p class="footer">Open Plant WSI Docs • <span data-role="year"></span></p>
