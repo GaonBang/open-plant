@@ -118,6 +118,8 @@ export class WsiTileRenderer {
   private zoomSnaps: number[] = [];
   private zoomSnapFitAsMin = false;
   private zoomSnapState: ZoomSnapState = { accumulatedDelta: 0, lastSnapTimeMs: 0, blockedDirection: null };
+  private panExtentX = 0.2;
+  private panExtentY = 0.2;
 
   private readonly boundPointerDown: (event: PointerEvent) => void;
   private readonly boundPointerMove: (event: PointerEvent) => void;
@@ -166,6 +168,7 @@ export class WsiTileRenderer {
     this.viewTransitionEasing = normalizeTransitionEasing(options.viewTransition?.easing);
     this.zoomSnaps = normalizeZoomSnaps(options.zoomSnaps, this.source.mpp);
     this.zoomSnapFitAsMin = Boolean(options.zoomSnapFitAsMin);
+    this.applyPanExtent(options.panExtent);
 
     const gl = canvas.getContext("webgl2", {
       alpha: false,
@@ -219,6 +222,8 @@ export class WsiTileRenderer {
       source: this.source,
       emitViewState: () => this.onViewStateChange?.(this.camera.getViewState()),
       requestRender: () => this.requestRender(),
+      getPanExtentX: () => this.panExtentX,
+      getPanExtentY: () => this.panExtentY,
       zoomBy: (factor, x, y) => this.zoomBy(factor, x, y),
       getUseZoomSnaps: () => this.zoomSnaps.length > 0,
       onSnapZoom: (direction, x, y) => this.handleSnapZoom(direction, x, y),
@@ -246,7 +251,7 @@ export class WsiTileRenderer {
   }
 
   private resolveTargetViewState(next: Partial<WsiViewState>): WsiViewState {
-    return resolveManagedTargetViewState(this.camera, this.minZoom, this.maxZoom, next, () => clampManagedViewState(this.camera, this.source));
+    return resolveManagedTargetViewState(this.camera, this.minZoom, this.maxZoom, next, () => clampManagedViewState(this.camera, this.source, this.panExtentX, this.panExtentY));
   }
 
   private cancelViewAnimation(): void {
@@ -261,7 +266,7 @@ export class WsiTileRenderer {
       durationMs,
       easing,
       onUpdate: () => {
-        clampManagedViewState(this.camera, this.source);
+        clampManagedViewState(this.camera, this.source, this.panExtentX, this.panExtentY);
         this.onViewStateChange?.(this.camera.getViewState());
         this.requestRender();
       },
@@ -493,6 +498,23 @@ export class WsiTileRenderer {
     this.zoomSnapFitAsMin = Boolean(fitAsMin);
   }
 
+  setPanExtent(extent: number | { x: number; y: number } | null | undefined): void {
+    this.applyPanExtent(extent);
+  }
+
+  private applyPanExtent(extent: number | { x: number; y: number } | null | undefined): void {
+    if (typeof extent === "number" && Number.isFinite(extent)) {
+      this.panExtentX = Math.max(0, extent);
+      this.panExtentY = Math.max(0, extent);
+    } else if (extent != null && typeof extent === "object") {
+      this.panExtentX = typeof extent.x === "number" && Number.isFinite(extent.x) ? Math.max(0, extent.x) : 0.2;
+      this.panExtentY = typeof extent.y === "number" && Number.isFinite(extent.y) ? Math.max(0, extent.y) : 0.2;
+    } else {
+      this.panExtentX = 0.2;
+      this.panExtentY = 0.2;
+    }
+  }
+
   private getZoomPivotAnimationContext(): ZoomPivotAnimationContext {
     return {
       camera: this.camera,
@@ -500,7 +522,7 @@ export class WsiTileRenderer {
       minZoom: this.minZoom,
       maxZoom: this.maxZoom,
       cancelViewAnimation: () => this.cancelViewAnimation(),
-      clampViewState: () => clampManagedViewState(this.camera, this.source),
+      clampViewState: () => clampManagedViewState(this.camera, this.source, this.panExtentX, this.panExtentY),
       onViewStateChange: state => this.onViewStateChange?.(state),
       requestRender: () => this.requestRender(),
     };

@@ -26,6 +26,7 @@ export interface WsiViewerProps {
   viewTransition?: WsiViewTransitionOptions;
   zoomSnaps?: number[];
   zoomSnapFitAsMin?: boolean;
+  panExtent?: number | { x: number; y: number };
   onPointerWorldMove?: (event: PointerWorldMoveEvent) => void;
   debugOverlay?: boolean;
   debugOverlayStyle?: CSSProperties;
@@ -60,6 +61,7 @@ export function WsiViewer({
   viewTransition,
   zoomSnaps,
   zoomSnapFitAsMin,
+  panExtent,
   onPointerWorldMove,
   debugOverlay = false,
   debugOverlayStyle,
@@ -291,6 +293,7 @@ export function WsiViewer({
       viewTransition,
       zoomSnaps,
       zoomSnapFitAsMin,
+      panExtent,
     });
 
     rendererRef.current = renderer;
@@ -333,6 +336,9 @@ export function WsiViewer({
   useEffect(() => {
     rendererRef.current?.setZoomSnaps(zoomSnaps, zoomSnapFitAsMin);
   }, [zoomSnaps, zoomSnapFitAsMin]);
+  useEffect(() => {
+    rendererRef.current?.setPanExtent(panExtent);
+  }, [panExtent]);
   useEffect(() => {
     rendererRef.current?.setImageColorSettings(imageColorSettings);
   }, [imageColorSettings]);

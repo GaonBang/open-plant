@@ -85,6 +85,7 @@ export interface WsiTileRendererOptions {
   onContextRestored?: () => void;
   zoomSnaps?: number[];
   zoomSnapFitAsMin?: boolean;
+  panExtent?: number | { x: number; y: number };
 }
 
 export interface ViewAnimationState {

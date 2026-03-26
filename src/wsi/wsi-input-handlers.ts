@@ -24,6 +24,8 @@ interface PointerMoveWithLockOptions extends BaseInteractionOptions {
   rotationDragSensitivityDegPerPixel: number;
   camera: OrthoCamera;
   source: WsiImageSource;
+  panExtentX: number;
+  panExtentY: number;
   emitViewState: () => void;
   requestRender: () => void;
 }
@@ -77,7 +79,7 @@ export function onPointerMoveWithLock(options: PointerMoveWithLockOptions): void
       rotationDragSensitivityDegPerPixel: options.rotationDragSensitivityDegPerPixel,
     },
     camera: options.camera,
-    clampViewState: () => clampViewState(options.camera, options.source),
+    clampViewState: () => clampViewState(options.camera, options.source, options.panExtentX, options.panExtentY),
     emitViewState: options.emitViewState,
     requestRender: options.requestRender,
   });
@@ -128,6 +130,8 @@ export interface CreateRendererInputHandlersOptions {
   source: WsiImageSource;
   emitViewState: () => void;
   requestRender: () => void;
+  getPanExtentX: () => number;
+  getPanExtentY: () => number;
   zoomBy: (factor: number, x: number, y: number) => void;
   getUseZoomSnaps?: () => boolean;
   onSnapZoom?: (direction: "in" | "out", x: number, y: number) => boolean;
@@ -158,6 +162,8 @@ export function createRendererInputHandlers(
         rotationDragSensitivityDegPerPixel: options.getRotationDragSensitivityDegPerPixel(),
         camera: options.camera,
         source: options.source,
+        panExtentX: options.getPanExtentX(),
+        panExtentY: options.getPanExtentY(),
         emitViewState: options.emitViewState,
         requestRender: options.requestRender,
       }),

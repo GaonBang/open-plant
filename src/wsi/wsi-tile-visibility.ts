@@ -26,12 +26,12 @@ export function getViewBounds(camera: CameraViewLike): Bounds {
   return [minX, minY, maxX, maxY];
 }
 
-export function clampViewState(camera: CameraViewLike, source: WsiImageSource): void {
+export function clampViewState(camera: CameraViewLike, source: WsiImageSource, extentX = 0.2, extentY = 0.2): void {
   const bounds = getViewBounds(camera);
   const visibleW = Math.max(1e-6, bounds[2] - bounds[0]);
   const visibleH = Math.max(1e-6, bounds[3] - bounds[1]);
-  const marginX = visibleW * 0.2;
-  const marginY = visibleH * 0.2;
+  const marginX = visibleW * extentX;
+  const marginY = visibleH * extentY;
 
   const [centerX, centerY] = camera.getCenter();
   const halfW = visibleW * 0.5;

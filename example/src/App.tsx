@@ -495,6 +495,7 @@ export default function App() {
                   setPointerWorld(null);
                 }
               }}
+              panExtent={{ x: 1, y: 0.1 }}
               className="viewer-canvas"
             >
               <PointLayer
