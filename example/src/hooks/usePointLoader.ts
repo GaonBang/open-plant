@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { buildTermPalette, type WsiImageSource, type WsiPointData } from "../../../src";
+import { buildTermPalette, type WsiImageSource, type WsiPointData, type WsiTerm } from "../../../src";
 import { S3_BASE_URL } from "../utils/constants";
 import { createTermAliasResolver } from "../utils/term-resolver";
 import { type LoadedPointData, loadPointsFromZst } from "../point-loader";
@@ -24,6 +24,7 @@ export const INITIAL_POINT_STATUS: PointStatus = {
 
 export function usePointLoader(
 	source: WsiImageSource | null,
+	terms: WsiTerm[],
 	pointZstUrl: string,
 	bearerToken: string,
 ) {
@@ -31,9 +32,8 @@ export function usePointLoader(
 	const [pointStatus, setPointStatus] = useState<PointStatus>(INITIAL_POINT_STATUS);
 
 	const termPalette = useMemo(() => {
-		if (!source?.terms?.length) return buildTermPalette([]);
-		return buildTermPalette(source.terms);
-	}, [source]);
+		return buildTermPalette(terms);
+	}, [terms]);
 
 	useEffect(() => {
 		if (!pointZstUrl || !source) {
@@ -42,19 +42,20 @@ export function usePointLoader(
 				...prev,
 				loading: false,
 				count: 0,
-				terms: source?.terms?.length || 0,
+				terms: terms.length,
 			}));
 			return;
 		}
 
 		let cancelled = false;
 		const currentSource = source;
+		const currentTerms = terms;
 
 		setPointStatus({
 			loading: true,
 			error: "",
 			count: 0,
-			terms: currentSource.terms.length,
+			terms: currentTerms.length,
 			hasNt: false,
 			hasPositivityRank: false,
 		});
@@ -71,7 +72,7 @@ export function usePointLoader(
 
 				const localTermIndex = result.localTermIndex || new Uint16Array(0);
 				const termTable = Array.isArray(result.termTable) ? result.termTable : [""];
-				const resolveTermPaletteIndex = createTermAliasResolver(currentSource.terms, termPalette.termToPaletteIndex);
+				const resolveTermPaletteIndex = createTermAliasResolver(currentTerms, termPalette.termToPaletteIndex);
 
 				const lut = new Uint16Array(Math.max(1, termTable.length));
 				const unmatchedTerms: string[] = [];
@@ -127,7 +128,7 @@ export function usePointLoader(
 		return () => {
 			cancelled = true;
 		};
-	}, [pointZstUrl, source, bearerToken, termPalette]);
+	}, [pointZstUrl, source, terms, bearerToken, termPalette]);
 
 	const reset = () => {
 		setPointPayload(null);

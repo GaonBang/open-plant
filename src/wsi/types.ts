@@ -14,7 +14,6 @@ export interface WsiImageSource {
   maxTierZoom: number;
   tilePath: string;
   tileBaseUrl: string;
-  terms: WsiTerm[];
   tileUrlBuilder?: (tier: number, x: number, y: number, tilePath: string, tileBaseUrl: string) => string;
 }
 

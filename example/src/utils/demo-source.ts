@@ -1,4 +1,4 @@
-import type { WsiImageSource } from "../../../src";
+import type { WsiImageSource, WsiTerm } from "../../../src";
 
 const _cache = new Map<string, string>();
 let _canvas: HTMLCanvasElement | null = null;
@@ -47,11 +47,14 @@ export function createDemoSource(): WsiImageSource {
 		tilePath: "",
 		tileBaseUrl: "",
 		tileUrlBuilder: buildDemoTileUrl,
-		terms: [
-			{ termId: "0", termName: "Background", termColor: "#888888" },
-			{ termId: "1", termName: "Negative", termColor: "#4a90d9" },
-			{ termId: "2", termName: "Positive", termColor: "#e74c3c" },
-			{ termId: "3", termName: "Other", termColor: "#2ecc71" },
-		],
 	};
+}
+
+export function createDemoTerms(): WsiTerm[] {
+	return [
+		{ termId: "0", termName: "Background", termColor: "#888888" },
+		{ termId: "1", termName: "Negative", termColor: "#4a90d9" },
+		{ termId: "2", termName: "Positive", termColor: "#e74c3c" },
+		{ termId: "3", termName: "Other", termColor: "#2ecc71" },
+	];
 }

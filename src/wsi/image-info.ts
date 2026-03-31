@@ -30,6 +30,16 @@ export interface RawImagePayload {
   tileUrlBuilder?: (tier: number, x: number, y: number, tilePath: string, tileBaseUrl: string) => string;
 }
 
+export function normalizeImageTerms(raw: Pick<RawImagePayload, "terms"> | null | undefined): WsiTerm[] {
+  return Array.isArray(raw?.terms)
+    ? raw.terms.map((term: RawWsiTerm) => ({
+        termId: String(term?.termId ?? ""),
+        termName: String(term?.termName ?? ""),
+        termColor: String(term?.termColor ?? ""),
+      }))
+    : [];
+}
+
 function trimTrailingSlash(value: string): string {
   return String(value ?? "").replace(/\/+$/, "");
 }
@@ -85,14 +95,6 @@ export function normalizeImageInfo(raw: RawImagePayload, tileBaseUrl: string): W
     throw new Error("Incomplete image metadata: width/height/tileSize/path required");
   }
 
-  const terms: WsiTerm[] = Array.isArray(raw?.terms)
-    ? raw.terms.map((term: RawWsiTerm) => ({
-        termId: String(term?.termId ?? ""),
-        termName: String(term?.termName ?? ""),
-        termColor: String(term?.termColor ?? ""),
-      }))
-    : [];
-
   const normalizedPath = ensureLeadingSlash(tilePath);
   const imsTileRoot = joinImsTileRoot(tileBaseUrl);
   const tileUrlBuilder = raw?.tileUrlBuilder
@@ -108,7 +110,6 @@ export function normalizeImageInfo(raw: RawImagePayload, tileBaseUrl: string): W
     maxTierZoom: Number.isFinite(maxTierZoom) ? Math.max(0, Math.floor(maxTierZoom)) : 0,
     tilePath,
     tileBaseUrl,
-    terms,
     tileUrlBuilder,
   };
 }

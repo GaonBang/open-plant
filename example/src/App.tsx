@@ -27,6 +27,7 @@ import { DrawToolbar } from "./components/DrawToolbar";
 import { PointControls } from "./components/PointControls";
 import { StatusBar } from "./components/StatusBar";
 import { StatusOverlay } from "./components/StatusOverlay";
+import { TermColorControls } from "./components/TermColorControls";
 import { Topbar } from "./components/Topbar";
 import { ViewerControls } from "./components/ViewerControls";
 import { useDrawState } from "./hooks/useDrawState";
@@ -198,10 +199,10 @@ export default function App() {
   }, [resetInteraction]);
 
   const imageLoader = useImageLoader(bearerToken, onResetAll);
-  const { source } = imageLoader;
+  const { source, terms } = imageLoader;
 
-  const pointData = usePointLoader(source, imageLoader.pointZstUrl, bearerToken);
-  const draw = useDrawState(source, pointData.pointPayload);
+  const pointData = usePointLoader(source, terms, imageLoader.pointZstUrl, bearerToken);
+  const draw = useDrawState(source, terms, pointData.pointPayload);
   const viewer = useViewerControls(source);
   const currentHeatmapZoom = useMemo(() => {
     if (!source) return undefined;
@@ -347,7 +348,7 @@ export default function App() {
     []
   );
 
-  const positivePaletteIndex = useMemo(() => resolvePositivePaletteIndex(source?.terms, pointData.termPalette.termToPaletteIndex), [source, pointData.termPalette.termToPaletteIndex]);
+  const positivePaletteIndex = useMemo(() => resolvePositivePaletteIndex(terms, pointData.termPalette.termToPaletteIndex), [terms, pointData.termPalette.termToPaletteIndex]);
 
   const positiveHeatmapData = useMemo(() => {
     const payload = pointData.pointPayload;
@@ -468,6 +469,12 @@ export default function App() {
             onStrokeScaleChange={setPointStrokeScale}
             pointInnerBlackFill={pointInnerBlackFill}
             onInnerBlackFillChange={setPointInnerBlackFill}
+          />
+
+          <TermColorControls
+            terms={terms}
+            disabled={!source}
+            onTermColorChange={imageLoader.updateTermColor}
           />
 
           <StatusBar error={imageLoader.error} imageSummary={imageSummary} scaleSummary={viewer.scaleSummary} pointStatus={pointData.pointStatus} webGpuCaps={webGpuCaps} clipMode={viewer.clipMode} />

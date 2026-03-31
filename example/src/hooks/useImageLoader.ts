@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { normalizeImageInfo, type WsiImageSource } from "../../../src";
+import { normalizeImageInfo, normalizeImageTerms, type WsiImageSource, type WsiTerm } from "../../../src";
 import { DEFAULT_INFO_URL, S3_BASE_URL } from "../utils/constants";
-import { createDemoSource } from "../utils/demo-source";
+import { createDemoSource, createDemoTerms } from "../utils/demo-source";
 
 export interface ImageLoaderState {
 	loading: boolean;
 	error: string;
 	source: WsiImageSource | null;
+	terms: WsiTerm[];
 	pointZstUrl: string;
 	fitNonce: number;
 }
@@ -14,6 +15,7 @@ export interface ImageLoaderState {
 export interface ImageLoaderActions {
 	loadImageInfo: (url: string) => void;
 	loadDemo: () => void;
+	updateTermColor: (termId: string, color: string) => void;
 	setFitNonce: React.Dispatch<React.SetStateAction<number>>;
 }
 
@@ -26,6 +28,7 @@ export function useImageLoader(
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const [source, setSource] = useState<WsiImageSource | null>(null);
+	const [terms, setTerms] = useState<WsiTerm[]>([]);
 	const [pointZstUrl, setPointZstUrl] = useState("");
 	const [fitNonce, setFitNonce] = useState(0);
 
@@ -33,7 +36,9 @@ export function useImageLoader(
 		setLoading(true);
 		setError("");
 		const demoSource = createDemoSource();
+		const demoTerms = createDemoTerms();
 		setSource(demoSource);
+		setTerms(demoTerms);
 		setPointZstUrl("/sample/10000000cells.zst");
 		setFitNonce(prev => prev + 1);
 		onReset();
@@ -46,6 +51,7 @@ export function useImageLoader(
 			if (!trimmedUrl) {
 				setError("image info URL이 비어 있습니다.");
 				setSource(null);
+				setTerms([]);
 				return;
 			}
 
@@ -69,13 +75,16 @@ export function useImageLoader(
 							return `${tileBaseUrl}${p}/${tier}/${y}_${x}.webp`;
 						},
 					}, `${S3_BASE_URL}/ims`);
+					const nextTerms = normalizeImageTerms(raw);
 					setSource(nextSource);
+					setTerms(nextTerms);
 					setPointZstUrl(raw?.mvtPath ? String(raw.mvtPath) : "");
 					setFitNonce(prev => prev + 1);
 					onReset();
 				})
 				.catch((err: Error) => {
 					setSource(null);
+					setTerms([]);
 					setPointZstUrl("");
 					setError(err.message || "알 수 없는 오류");
 					onReset();
@@ -87,6 +96,14 @@ export function useImageLoader(
 		[bearerToken, onReset],
 	);
 
+	const updateTermColor = useCallback((termId: string, color: string): void => {
+		const nextColor = String(color || "").trim();
+		if (!termId || !nextColor) return;
+		setTerms(prev =>
+			prev.map(term => (term.termId === termId ? { ...term, termColor: nextColor } : term))
+		);
+	}, []);
+
 	useEffect(() => {
 		if (initialLoadDoneRef.current) return;
 		initialLoadDoneRef.current = true;
@@ -97,5 +114,5 @@ export function useImageLoader(
 		}
 	}, [loadImageInfo, loadDemo]);
 
-	return { loading, error, source, pointZstUrl, fitNonce, loadImageInfo, loadDemo, setFitNonce };
+	return { loading, error, source, terms, pointZstUrl, fitNonce, loadImageInfo, loadDemo, updateTermColor, setFitNonce };
 }

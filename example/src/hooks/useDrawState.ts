@@ -7,10 +7,12 @@ import {
 	type PatchDrawResult,
 	type WsiPointData,
 	type WsiRegion,
+	type WsiTerm,
 } from "../../../src";
 
 export function useDrawState(
-	source: { id: string; name: string; width: number; height: number; terms: { termId: string; termName: string; termColor: string }[] } | null,
+	source: { id: string; name: string; width: number; height: number } | null,
+	terms: WsiTerm[],
 	pointPayload: WsiPointData | null,
 ) {
 	const [drawTool, setDrawTool] = useState<DrawTool>("cursor");
@@ -125,7 +127,7 @@ export function useDrawState(
 				areaPx: lastPatch.areaPx,
 			},
 			images: [{ id: source.id, name: source.name, width: source.width, height: source.height }],
-			categories: source.terms.map(term => ({
+			categories: terms.map(term => ({
 				id: term.termId,
 				name: term.termName,
 				color: term.termColor,
@@ -140,7 +142,7 @@ export function useDrawState(
 		a.download = `patch-${source.id}-${Date.now()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
-	}, [source, pointPayload, lastPatch, lastPatchIndices]);
+	}, [source, terms, pointPayload, lastPatch, lastPatchIndices]);
 
 	const handleStampRectChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
 		const next = Number(e.target.value);

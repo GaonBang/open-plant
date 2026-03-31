@@ -67,7 +67,7 @@ export type {
 } from "./react/wsi-viewer-canvas-types";
 export { DEFAULT_POINT_COLOR } from "./wsi/constants";
 export type { RawImagePayload, RawImsInfo, RawWsiTerm } from "./wsi/image-info";
-export { normalizeImageInfo, toTileUrl } from "./wsi/image-info";
+export { normalizeImageInfo, normalizeImageTerms, toTileUrl } from "./wsi/image-info";
 export type { RoiCoordinate, RoiPolygon } from "./wsi/point-clip";
 export { filterPointDataByPolygons, filterPointIndicesByPolygons } from "./wsi/point-clip";
 export type {
