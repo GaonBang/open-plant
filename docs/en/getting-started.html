@@ -49,13 +49,16 @@
           <section class="hero reveal">
             <div class="kicker">Quickstart</div>
             <h1>First WSI Render in Minutes</h1>
-            <p>Start from image metadata, normalize source, then wire tiles + points + ROI.</p>
+            <p>Start from image metadata, normalize the source, then compose tiles + points + ROI with the current package API (<strong>open-plant 1.4.10</strong>).</p>
           </section>
 
           <section class="panel reveal" id="setup">
             <h2>1. Setup</h2>
-            <pre><code class="language-bash">npm install
-npm run dev</code></pre>
+            <pre><code class="language-bash">npm install open-plant react react-dom</code></pre>
+            <div class="callout">
+              Peer dependency range: <code>react</code> / <code>react-dom</code> <code>^18 || ^19</code>.
+              If you are working inside this repository instead of consuming the package, run <code>npm install</code> and <code>npm run dev:example</code>.
+            </div>
           </section>
 
           <section class="panel reveal" id="load-info">
@@ -79,9 +82,9 @@ const pointZstUrl = raw?.mvtPath || "";</code></pre>
 
           <section class="panel reveal" id="minimal">
             <h2>3. Minimal viewer mount</h2>
-            <h3>Composition API (v1.4.4)</h3>
+            <h3>Current composition API (package 1.4.10)</h3>
             <pre><code class="language-tsx">import { useState } from "react";
-import { WsiViewer } from "open-plant";
+import { toBearerToken, WsiViewer } from "open-plant";
 
 function Viewer({ source, token }) {
   const [viewState, setViewState] = useState();
@@ -89,7 +92,7 @@ function Viewer({ source, token }) {
   return (
     &lt;WsiViewer
       source={source}
-      authToken={token}
+      authToken={toBearerToken(token)}
       viewState={viewState}
       onViewStateChange={setViewState}
       ctrlDragRotate
@@ -99,7 +102,7 @@ function Viewer({ source, token }) {
   );
 }</code></pre>
             <div class="callout">
-              <code>WsiViewerCanvas</code> was removed from the npm package in <strong>v1.4.4</strong>.
+              <code>WsiViewerCanvas</code> was removed in <strong>v1.4.4</strong> and is still not exported in the current package.
               To keep the old single component temporarily, pin <code>"open-plant": "1.4.3"</code> (or your last lockfile version that still exported it).
             </div>
           </section>
@@ -115,12 +118,16 @@ function Viewer({ source, token }) {
   }}
   minZoom={0.25}
   maxZoom={1}
+  panExtent={0.35}
   viewTransition={{ duration: 300 }}
 &gt;
   &lt;RegionLayer regions={regions} autoLiftLabelAtMaxZoom /&gt;
 &lt;/WsiViewer&gt;</code></pre>
             <p>
               Color settings are applied to the tile shader only. Point/cell markers, ROI, and draw overlay keep original colors.
+            </p>
+            <p>
+              <code>panExtent</code> controls how far users can drag outside the image bounds before the camera is clamped back.
             </p>
             <pre><code class="language-tsx">&lt;WsiViewer
   source={source}

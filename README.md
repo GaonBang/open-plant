@@ -261,6 +261,7 @@ src/
 | `viewTransition` | `WsiViewTransitionOptions` | `setViewState`/`fitToImage` 등 전환 |
 | `zoomSnaps` | `number[]` | 배율 배열 → `mpp` 기준 내부 zoom으로 정규화 |
 | `zoomSnapFitAsMin` | `boolean` | 스냅 아웃 시 fit을 하한으로 |
+| `panExtent` | `number \| { x: number; y: number }` | 이미지 바깥으로 허용할 추가 drag 여유. 기본 축별 `0.2` |
 | `onStats` | `(WsiRenderStats) => void` | 프레임 통계 |
 | `onTileError` | `(WsiTileErrorEvent) => void` | 타일 로드 실패 |
 | `onContextLost` / `onContextRestored` | `() => void` | WebGL 컨텍스트 |
@@ -336,7 +337,7 @@ import {
 | `zoomThreshold` | `number` | heatmap이 반응하는 유효 줌을 뒤로 미루는 continuous zoom offset. 양수일수록 더 높은 실제 줌까지 heatmap이 크게 유지됨 |
 | `densityContrast` | `number` | sparse 영역은 더 눌러두고 dense 영역은 더 빨리 강조하는 대비 계수 |
 | `clipToRegions` | `WsiRegion[]` | ROI 내부로 mask + point filter |
-| `maxRenderedPoints` | `number` | visible bin budget. 기본 `48000` |
+| `maxRenderedPoints` | `number` | visible bin budget. 기본 `52000` |
 | `zIndex` | `number` | 오버레이 draw priority |
 | `onStats` | `(stats) => void` | point count / render time 등 |
 

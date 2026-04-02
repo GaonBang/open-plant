@@ -51,17 +51,16 @@
             <h1>10분 내 첫 WSI 렌더</h1>
             <p>
               <code>WsiViewer</code>와 레이어(<code>PointLayer</code>, <code>RegionLayer</code> 등)로 타일·포인트·ROI를 연결합니다.
-              아래 코드는 현재 라이브러리 API(<code>src/index.ts</code>, <strong>v1.4.4</strong>)에 맞춰 작성되어 있습니다.
+              아래 코드는 현재 패키지 API(<strong>open-plant 1.4.10</strong>) 기준입니다.
             </p>
           </section>
 
           <section class="panel reveal" id="setup">
             <h2>1. 설치</h2>
-            <pre><code class="language-bash">npm install
-npm run dev</code></pre>
+            <pre><code class="language-bash">npm install open-plant react react-dom</code></pre>
             <div class="callout">
-              현재 레포는 모노레포 패키지 publish 이전 단계입니다. 로컬 라이브러리 코드(`src`)를
-              직접 import 하거나 workspace 의존성으로 연결해 사용하세요.
+              peer dependency 범위는 <code>react</code> / <code>react-dom</code> <code>^18 || ^19</code>입니다.
+              패키지 소비가 아니라 이 저장소 안에서 예제를 확인하려면 <code>npm install</code> 후 <code>npm run dev:example</code>를 실행하세요.
             </div>
           </section>
 
@@ -89,9 +88,9 @@ const pointZstUrl = rawInfo?.mvtPath || "";</code></pre>
 
           <section class="panel reveal" id="minimal">
             <h2>3. 최소 뷰어 렌더</h2>
-            <h3>컴포지션 API (v1.4.4)</h3>
+            <h3>현재 컴포지션 API (패키지 1.4.10)</h3>
             <pre><code class="language-tsx">import { useState } from "react";
-import { WsiViewer } from "open-plant";
+import { toBearerToken, WsiViewer } from "open-plant";
 
 function Viewer({ source, token }) {
   const [viewState, setViewState] = useState();
@@ -99,7 +98,7 @@ function Viewer({ source, token }) {
   return (
     &lt;WsiViewer
       source={source}
-      authToken={token}
+      authToken={toBearerToken(token)}
       viewState={viewState}
       onViewStateChange={setViewState}
       ctrlDragRotate
@@ -109,7 +108,7 @@ function Viewer({ source, token }) {
   );
 }</code></pre>
             <div class="callout">
-              <code>WsiViewerCanvas</code>는 npm 패키지 <strong>v1.4.4</strong>부터 제거되었습니다.
+              <code>WsiViewerCanvas</code>는 <strong>v1.4.4</strong>에서 제거되었고 현재 패키지에서도 export되지 않습니다.
               당분간 단일 컴포넌트가 필요하면 <code>"open-plant": "1.4.3"</code> 등으로 버전을 고정하세요.
             </div>
           </section>
@@ -125,12 +124,16 @@ function Viewer({ source, token }) {
   }}
   minZoom={0.25}
   maxZoom={1}
+  panExtent={0.35}
   viewTransition={{ duration: 300 }}
 &gt;
   &lt;RegionLayer regions={regions} autoLiftLabelAtMaxZoom /&gt;
 &lt;/WsiViewer&gt;</code></pre>
             <p>
               색상 보정은 타일 셰이더에만 적용됩니다. point/cell marker, ROI, draw overlay 색상은 변경되지 않습니다.
+            </p>
+            <p>
+              <code>panExtent</code>는 이미지 바깥으로 어느 정도까지 drag를 허용할지 정하는 값이며, 이후 camera clamp가 다시 경계를 맞춥니다.
             </p>
             <pre><code class="language-tsx">&lt;WsiViewer
   source={source}

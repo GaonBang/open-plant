@@ -35,15 +35,16 @@
       <div class="layout">
         <aside class="sidebar">
           <h2>API</h2>
-          <a href="#composition-api">WsiViewer (v1.4.4)</a>
+          <a href="#composition-api">WsiViewer (current 1.4.x)</a>
           <a href="#point-layer">PointLayer</a>
           <a href="#heatmap-layer">HeatmapLayer</a>
           <a href="#region-layer">RegionLayer</a>
           <a href="#drawing-layer">DrawingLayer</a>
           <a href="#patch-layer">PatchLayer</a>
           <a href="#overlay-layer">OverlayLayer</a>
+          <a href="#overview-map">OverviewMap</a>
           <a href="#viewer-context">ViewerContext</a>
-          <a href="#wsi-viewer">Legacy WsiViewerCanvas (removed v1.4.4)</a>
+          <a href="#wsi-viewer">Legacy WsiViewerCanvas (removed in v1.4.4)</a>
           <a href="#draw-layer">DrawLayer</a>
           <a href="#tile-viewer">TileViewerCanvas</a>
           <a href="#types">Core types</a>
@@ -60,9 +61,10 @@
           </section>
 
           <section class="panel reveal" id="composition-api">
-            <h2>`WsiViewer` — Composition API (v1.4.4)</h2>
+            <h2>`WsiViewer` — Composition API (introduced in v1.4.0)</h2>
             <p>
-              Declarative layer composition API. The monolithic <code>WsiViewerCanvas</code> was removed in <strong>v1.4.4</strong>.
+              Declarative layer composition API used by the current package (<strong>open-plant 1.4.10</strong>).
+              The monolithic <code>WsiViewerCanvas</code> was removed in <strong>v1.4.4</strong>.
               <code>WsiViewer</code> manages the WebGL and overlay canvases, provides <code>ViewerContext</code>,
               and renders child layer components. See <a href="migration-guide.html#v140">migration guide</a>.
             </p>
@@ -86,6 +88,7 @@
                 <tr><td><code>viewTransition</code></td><td><code>WsiViewTransitionOptions</code></td><td>Camera transition animation.</td></tr>
                 <tr><td><code>zoomSnaps</code></td><td><code>number[]</code></td><td>Magnification snap stops.</td></tr>
                 <tr><td><code>zoomSnapFitAsMin</code></td><td><code>boolean</code></td><td>Treat fit zoom as snap lower bound.</td></tr>
+                <tr><td><code>panExtent</code></td><td><code>number | { x: number; y: number }</code></td><td>Extra pan allowance outside image bounds. Default: <code>0.2</code> per axis.</td></tr>
                 <tr><td><code>onPointerWorldMove</code></td><td><code>(event: PointerWorldMoveEvent) =&gt; void</code></td><td>World-coordinate pointer stream callback.</td></tr>
                 <tr><td><code>debugOverlay</code></td><td><code>boolean</code></td><td>Runtime debug HUD.</td></tr>
                 <tr><td><code>debugOverlayStyle</code></td><td><code>CSSProperties</code></td><td>Debug HUD style override.</td></tr>
@@ -137,7 +140,7 @@
                 <tr><td><code>zoomThreshold</code></td><td><code>number</code></td><td>Continuous zoom offset applied to heatmap detail response. Higher values keep the heatmap visually larger until higher real viewer zoom levels.</td></tr>
                 <tr><td><code>densityContrast</code></td><td><code>number</code></td><td>Contrast factor that suppresses sparse regions more aggressively while pushing dense regions toward highlight colors faster.</td></tr>
                 <tr><td><code>clipToRegions</code></td><td><code>WsiRegion[]</code></td><td>Optional ROI point filter + overlay mask.</td></tr>
-                <tr><td><code>maxRenderedPoints</code></td><td><code>number</code></td><td>Visible-bin budget. Default: <code>48000</code>.</td></tr>
+                <tr><td><code>maxRenderedPoints</code></td><td><code>number</code></td><td>Visible-bin budget. Default: <code>52000</code>.</td></tr>
                 <tr><td><code>zIndex</code></td><td><code>number</code></td><td>Overlay draw priority. Default: <code>5</code>.</td></tr>
                 <tr><td><code>onStats</code></td><td><code>(stats) =&gt; void</code></td><td>Render stats callback: point count, visible count, render time.</td></tr>
               </tbody>
@@ -186,7 +189,7 @@
               </tbody>
             </table>
             <div class="callout">
-              <code>DrawingLayer</code> automatically manages interaction lock — when <code>tool !== "cursor"</code>, pan/zoom is disabled. No manual <code>interactionLock</code> prop needed.
+              <code>DrawingLayer</code> automatically manages interaction lock. Drag-pan is blocked while drawing, but wheel zoom is still forwarded through the projector, so no manual <code>interactionLock</code> prop is needed.
             </div>
           </section>
 
@@ -211,6 +214,37 @@
             </table>
           </section>
 
+          <section class="panel reveal" id="overview-map">
+            <h2>`OverviewMap` props</h2>
+            <table>
+              <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>source</code></td><td><code>WsiImageSource</code></td><td>Image source metadata used for thumbnail bounds and viewport projection.</td></tr>
+                <tr><td><code>projectorRef</code></td><td><code>RefObject&lt;OverviewMapProjector | null&gt;</code></td><td>Usually pass <code>rendererRef</code> from <code>useViewerContext()</code>.</td></tr>
+                <tr><td><code>authToken</code></td><td><code>string</code></td><td>Optional token for overview thumbnail tile requests.</td></tr>
+                <tr><td><code>options</code></td><td><code>Partial&lt;OverviewMapOptions&gt;</code></td><td>Visual and interaction overrides.</td></tr>
+                <tr><td><code>invalidateRef</code></td><td><code>MutableRefObject&lt;(() =&gt; void) | null&gt;</code></td><td>Optional imperative redraw hook for host code.</td></tr>
+                <tr><td><code>className</code></td><td><code>string</code></td><td>Root container class.</td></tr>
+                <tr><td><code>style</code></td><td><code>CSSProperties</code></td><td>Root container style.</td></tr>
+              </tbody>
+            </table>
+            <table>
+              <thead><tr><th>Option</th><th>Type</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>width</code> / <code>height</code></td><td><code>number</code></td><td>Overview canvas size. Defaults: <code>200</code> × <code>125</code>.</td></tr>
+                <tr><td><code>margin</code>, <code>position</code>, <code>borderRadius</code>, <code>borderWidth</code></td><td>layout</td><td>Floating placement and frame geometry.</td></tr>
+                <tr><td><code>backgroundColor</code>, <code>borderColor</code></td><td><code>string</code></td><td>Container background and border colors.</td></tr>
+                <tr><td><code>viewportBorderColor</code>, <code>viewportBorderStyle</code>, <code>viewportFillColor</code></td><td><code>string</code> / union</td><td>Viewport indicator styling.</td></tr>
+                <tr><td><code>interactive</code></td><td><code>boolean</code></td><td>Enable click and drag navigation from the mini-map.</td></tr>
+                <tr><td><code>showThumbnail</code>, <code>maxThumbnailTiles</code></td><td><code>boolean</code> / <code>number</code></td><td>Thumbnail rendering toggle and tile budget.</td></tr>
+                <tr><td><code>onClose</code>, <code>closeIcon</code>, <code>closeButtonStyle</code></td><td>callback / node / style</td><td>Optional dismiss UI for host-controlled visibility.</td></tr>
+              </tbody>
+            </table>
+            <div class="callout">
+              <code>OverviewMap</code> is a standalone helper component. <code>WsiViewer</code> does not mount it automatically; wire it with <code>rendererRef</code> from <code>useViewerContext()</code>.
+            </div>
+          </section>
+
           <section class="panel reveal" id="viewer-context">
             <h2>`useViewerContext()` hook</h2>
             <p>Access the shared viewer context from any component inside <code>&lt;WsiViewer&gt;</code>.</p>
@@ -219,11 +253,17 @@
               <tbody>
                 <tr><td><code>source</code></td><td><code>WsiImageSource | null</code></td><td>Current image source.</td></tr>
                 <tr><td><code>rendererRef</code></td><td><code>RefObject&lt;WsiTileRenderer | null&gt;</code></td><td>Direct renderer access.</td></tr>
+                <tr><td><code>rendererSerial</code></td><td><code>number</code></td><td>Changes when the renderer instance is recreated.</td></tr>
+                <tr><td><code>canvasRef</code></td><td><code>RefObject&lt;HTMLCanvasElement | null&gt;</code></td><td>Shared on-screen WebGL canvas ref.</td></tr>
+                <tr><td><code>containerRef</code></td><td><code>RefObject&lt;HTMLDivElement | null&gt;</code></td><td>Root viewer container ref.</td></tr>
+                <tr><td><code>drawInvalidateRef</code></td><td><code>MutableRefObject&lt;(() =&gt; void) | null&gt;</code></td><td>Imperative redraw handle for draw overlays.</td></tr>
+                <tr><td><code>overviewInvalidateRef</code></td><td><code>MutableRefObject&lt;(() =&gt; void) | null&gt;</code></td><td>Imperative redraw handle for overview-map hosts.</td></tr>
                 <tr><td><code>worldToScreen</code></td><td><code>(worldX, worldY) =&gt; DrawCoordinate | null</code></td><td>Coordinate transform.</td></tr>
                 <tr><td><code>screenToWorld</code></td><td><code>(clientX, clientY) =&gt; DrawCoordinate | null</code></td><td>Inverse coordinate transform.</td></tr>
                 <tr><td><code>registerDrawCallback</code></td><td><code>(id, priority, draw) =&gt; void</code></td><td>Register overlay draw function.</td></tr>
                 <tr><td><code>unregisterDrawCallback</code></td><td><code>(id) =&gt; void</code></td><td>Unregister overlay draw function.</td></tr>
                 <tr><td><code>requestOverlayRedraw</code></td><td><code>() =&gt; void</code></td><td>Request overlay canvas redraw.</td></tr>
+                <tr><td><code>registerViewStateListener</code></td><td><code>(listener) =&gt; () =&gt; void</code></td><td>Subscribe to view-state changes without prop drilling.</td></tr>
                 <tr><td><code>setInteractionLock</code></td><td><code>(id, locked) =&gt; void</code></td><td>Lock/unlock pan/zoom.</td></tr>
                 <tr><td><code>isInteractionLocked</code></td><td><code>() =&gt; boolean</code></td><td>Check lock state.</td></tr>
               </tbody>
@@ -234,8 +274,8 @@
           </section>
 
           <section class="panel reveal" id="wsi-viewer">
-            <h2>Legacy <code>WsiViewerCanvas</code> <span style="color:#b33;">removed in v1.4.4+</span></h2>
-            <p>The monolithic <code>WsiViewerCanvas</code> component and <code>WsiViewerCanvasProps</code> are <strong>no longer exported</strong> from <code>open-plant</code> as of <strong>v1.4.4</strong>.</p>
+            <h2>Legacy <code>WsiViewerCanvas</code> <span style="color:#b33;">removed in v1.4.4</span></h2>
+            <p>The monolithic <code>WsiViewerCanvas</code> component and <code>WsiViewerCanvasProps</code> were <strong>removed</strong> in <strong>v1.4.4</strong> and remain absent from the current package (<code>1.4.10</code>).</p>
             <ul>
               <li><strong>Upgrade:</strong> use <code>WsiViewer</code> + layer components (see sections above) and the <a href="../migration-1.4.0.md">migration guide</a>.</li>
               <li><strong>Stay on the legacy API temporarily:</strong> pin <code>"open-plant": "1.4.3"</code> (or the last version that still shipped <code>WsiViewerCanvas</code> in your lockfile).</li>
@@ -283,6 +323,8 @@
                 <tr><td><code>imageHeight</code></td><td><code>number</code></td><td>Source image height in pixels.</td></tr>
                 <tr><td><code>tiles</code></td><td><code>TileDefinition[]</code></td><td>M1 tile definition list.</td></tr>
                 <tr><td><code>viewState</code></td><td><code>Partial&lt;ViewState&gt;</code></td><td>Optional controlled camera state.</td></tr>
+                <tr><td><code>className</code></td><td><code>string</code></td><td>Canvas class name.</td></tr>
+                <tr><td><code>style</code></td><td><code>CSSProperties</code></td><td>Canvas style override.</td></tr>
               </tbody>
             </table>
           </section>
@@ -299,7 +341,7 @@
   maxTierZoom: number;
   tilePath: string;
   tileBaseUrl: string;
-  tileUrlBuilder?: (tier: number, x: number, y: number) => string;
+  tileUrlBuilder?: (tier: number, x: number, y: number, tilePath: string, tileBaseUrl: string) => string;
 }
 
 interface WsiClass {

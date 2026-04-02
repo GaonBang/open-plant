@@ -15,7 +15,7 @@ Contributions are welcome in:
 
 ## 2. Before You Start
 
-1. Check `engine-roadmap.md` for active priorities.
+1. Check `engine-build-process.md`, `performance-optimization.md`, and `docs/README.md` before larger changes.
 2. Open an issue first for non-trivial behavior changes.
 3. Keep changes small and reviewable.
 

@@ -1,8 +1,10 @@
-# v1.3.x → v1.4.x 마이그레이션 가이드 (현재 패키지: **1.4.4**)
+# v1.3.x → v1.4.x 마이그레이션 가이드 (현재 패키지: **1.4.10**)
 
 ## v1.4.4 — Breaking: `WsiViewerCanvas` 제거
 
 **`WsiViewerCanvas`와 `WsiViewerCanvasProps`는 npm 패키지 `open-plant@1.4.4`부터 더 이상 export되지 않습니다.**
+
+현재 패키지 `open-plant@1.4.10`도 동일하게 `WsiViewerCanvas`를 포함하지 않습니다.
 
 - 신규/업그레이드 프로젝트: 아래 **`WsiViewer` + 레이어** 조합으로 이전하세요.
 - 당분간 단일 컴포넌트 API가 필요하면: `package.json`에서 `open-plant`를 **`1.4.3` 이하**로 고정하거나, 저장소 히스토리에서 컴포넌트를 벤더링합니다.
@@ -42,6 +44,7 @@ v1.4.0에서 컴포지션 API가 도입되었고, 당시에는 `WsiViewerCanvas`
 | `viewTransition` | `viewTransition` | |
 | `zoomSnaps` | `zoomSnaps` | |
 | `zoomSnapFitAsMin` | `zoomSnapFitAsMin` | |
+| — | `panExtent` | 현재 1.4.x에서 이미지 바깥 drag 허용 범위를 제어하는 신규 prop |
 | `onPointerWorldMove` | `onPointerWorldMove` | |
 | `debugOverlay` | `debugOverlay` | |
 | `debugOverlayStyle` | `debugOverlayStyle` | |
@@ -116,9 +119,9 @@ v1.4.0에서 컴포지션 API가 도입되었고, 당시에는 `WsiViewerCanvas`
 | `interactionLock` | `DrawingLayer`가 `tool !== "cursor"`일 때 자동 관리 |
 | `getCellByCoordinatesRef` | `PointLayer`에 `ref` 전달 → `ref.current.queryAt(coordinate)` |
 
-### 아직 1:1 대체 없음 (앱 쪽에서 조합)
+### 현재도 1:1 대체 없음 (앱 쪽에서 조합)
 
-| 기존 prop | 대안 (v1.4.4) |
+| 기존 prop | 대안 (current 1.4.x) |
 |---|---|
 | `customLayers` | `useViewerContext()` + 호스트 React 오버레이 (`worldToScreen` 등) |
 | `onRoiPointGroups` / `roiPaletteIndexToClassId` | `computeRoiPointGroups(pointData, regions, options)` 를 뷰어 밖에서 호출 |
@@ -536,7 +539,7 @@ function MyCustomOverlay() {
 
 ## 마이그레이션 체크리스트
 
-- [ ] `open-plant`를 **`1.4.4`**(또는 원하는 최신)로 업데이트
+- [ ] `open-plant`를 **`1.4.10`**(또는 원하는 최신)로 업데이트
 - [ ] **`WsiViewerCanvas` import 제거** → `WsiViewer` + `PointLayer` / `RegionLayer` / `DrawingLayer` 등으로 교체
 - [ ] props 이름 변경 적용 (위 매핑표 참조)
 - [ ] `interactionLock` 제거 — `DrawingLayer`가 `tool !== "cursor"`일 때 자동 처리

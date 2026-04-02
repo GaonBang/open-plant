@@ -57,7 +57,7 @@
 
           <section class="panel reveal" id="runtime">
             <h2>런타임 구성</h2>
-            <h3>v1.4.4 — 컴포지션 API</h3>
+            <h3>현재 1.4.x 컴포지션 런타임</h3>
             <pre><code class="language-txt">React
  └─ WsiViewer (ViewerContext provider)
     ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
@@ -70,7 +70,7 @@
     │  ├─ OverlayLayer draws (priority 30)
     │  └─ RegionLayer labels (priority 50)
     ├─ DrawingLayer → DrawLayer (pointer capture, preview)
-    └─ OverviewMap (선택적 자식)</code></pre>
+    └─ OverviewMap host (선택, projectorRef 연결)</code></pre>
             <p>
               각 레이어 컴포넌트는 <code>registerDrawCallback(id, priority, fn)</code>으로 공유 오버레이 캔버스에 그립니다.
               <code>WsiViewer</code>는 화면에 WebGL 캔버스 1개와 공유 오버레이 캔버스 1개만 유지하고, 단일 <code>requestAnimationFrame</code> 패스에서
@@ -81,7 +81,7 @@
             </p>
             <h3>v1.4.4 제거 — <code>WsiViewerCanvas</code></h3>
             <p>
-              예전 모놀리식 트리(동일 렌더러 + 별도 DrawLayer 캔버스를 한 컴포넌트로 묶음)는 npm 패키지에 더 이상 포함되지 않습니다.
+              예전 모놀리식 트리(동일 렌더러 + 별도 DrawLayer 캔버스를 한 컴포넌트로 묶음)는 npm 패키지에 더 이상 포함되지 않으며 현재 패키지(<code>1.4.10</code>)에도 없습니다.
               과거 레이아웃이 필요하면 <code>open-plant@1.4.3</code> 등으로만 확인하고, 신규 구현은 위 컴포지션 트리를 따르세요.
             </p>
           </section>
@@ -116,11 +116,12 @@
             <h2>포인트 파이프라인</h2>
             <div class="flow">
               <div class="flow-step"><strong>외부 파싱:</strong> 포인트 로딩/디코딩(zstd+MVT 등)은 호출자 책임.</div>
-              <div class="flow-step"><strong>입력 계약:</strong> <code>Float32Array</code> positions + <code>Uint16Array</code> paletteIndices를 기본으로 받고, 선택적으로 <code>fillModes</code>/<code>drawIndices</code>를 수신합니다.</div>
+              <div class="flow-step"><strong>입력 계약:</strong> <code>Float32Array</code> positions + <code>Uint16Array</code> paletteIndices를 기본으로 받고, 선택적으로 <code>fillModes</code>, <code>ids</code>, <code>drawIndices</code>를 수신합니다.</div>
               <div class="flow-step"><strong>업로드:</strong> positions/paletteIndices를 GPU 버퍼로 전송.</div>
               <div class="flow-step"><strong>셰이더 렌더:</strong> <code>fillModes</code> 기반 ring/solid 모드로 palette 색상을 렌더합니다.</div>
               <div class="flow-step"><strong>ROI clip:</strong> 필요 시 <code>clipMode</code>에 따라 polygon 내부 포인트만 필터링.</div>
-              <div class="flow-step"><strong>ROI 통계:</strong> <code>computeRoiPointGroups</code> / <code>onRoiPointGroups</code>로 ROI별 class 집계.</div>
+              <div class="flow-step"><strong>히트테스트 인덱스:</strong> hover/click/queryAt은 메인 스레드 재빌드 대신 워커가 만든 flat spatial index를 사용합니다.</div>
+              <div class="flow-step"><strong>ROI 통계:</strong> ROI별 class 집계는 앱 코드에서 <code>computeRoiPointGroups</code>로 계산합니다.</div>
             </div>
           </section>
 
@@ -150,9 +151,10 @@
             <h2>드로잉 파이프라인</h2>
             <div class="flow">
               <div class="flow-step"><strong>카메라 입력:</strong> pan + wheel zoom + <code>Ctrl/Cmd + drag</code> 회전(<code>rotationDeg</code>).</div>
-              <div class="flow-step"><strong>Pointer capture:</strong> draw 활성 시 입력을 DrawLayer가 독점.</div>
+              <div class="flow-step"><strong>Pointer capture:</strong> draw 활성 시 DrawLayer가 active pointer를 잡고 <code>setInteractionLock</code>으로 drag-pan을 잠급니다.</div>
               <div class="flow-step"><strong>미리보기:</strong> freehand/rectangle/circular preview 또는 brush cursor+stroke.</div>
-              <div class="flow-step"><strong>완료:</strong> tool별 좌표를 닫힌 ring으로 변환 후 `onDrawComplete` emit(<code>intent: "roi" | "patch" | "brush"</code>).</div>
+              <div class="flow-step"><strong>휠 패스스루:</strong> draw 중에도 wheel zoom은 렌더러로 전달되어 배율 조정이 계속 가능합니다.</div>
+              <div class="flow-step"><strong>완료:</strong> tool별 좌표를 닫힌 ring으로 변환 후 <code>onComplete</code> / <code>onPatchComplete</code> payload를 emit합니다(<code>intent: "roi" | "patch" | "brush"</code>).</div>
               <div class="flow-step"><strong>Region 상호작용:</strong> cursor 모드 hit-test 대상은 contour + 라벨 영역이며 내부 fill은 제외됩니다.</div>
               <div class="flow-step"><strong>영속 표시:</strong> `persistedRegions`로 outline와 label을 계속 렌더.</div>
             </div>

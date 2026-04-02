@@ -1,8 +1,8 @@
 # Open Plant WSI Docs
 
-정적 문서 사이트입니다. GitHub Pages에서 `docs/` 디렉토리를 직접 배포합니다.
+정적 문서 사이트입니다. GitHub Pages에서 `docs/` 디렉토리를 artifact로 업로드해 배포합니다.
 
-문서 기준 패키지 버전: **open-plant 1.4.4** (`WsiViewer` + 레이어 API, `WsiViewerCanvas` 미포함).
+문서 기준 패키지 버전: **open-plant 1.4.10** (`WsiViewer` + 레이어 API, `WsiViewerCanvas` 미포함).
 
 ## Language Structure
 
@@ -27,6 +27,7 @@ python3 -m http.server 4173
 
 - 워크플로우: `.github/workflows/docs-pages.yml`
 - GitHub Settings > Pages > Source를 `GitHub Actions`로 설정
+- 현재 Pages 배포 액션 조합: `actions/checkout@v5`, `actions/configure-pages@v5`, `actions/upload-pages-artifact@v4`, `actions/deploy-pages@v4`
 
 ## Release Gate
 

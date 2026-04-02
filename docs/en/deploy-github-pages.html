@@ -46,7 +46,7 @@
           <section class="hero reveal">
             <div class="kicker">GitHub Pages</div>
             <h1>Deploy `docs/` as static site</h1>
-            <p>On push to `main` or `master`, the workflow uploads `docs` and deploys to GitHub Pages.</p>
+            <p>On push to `main` or `master`, the workflow uploads `docs` as a Pages artifact and deploys it with the current GitHub Pages custom-workflow pattern.</p>
           </section>
 
           <section class="panel reveal" id="summary">
@@ -56,7 +56,7 @@
               <div class="flow-step"><strong>2.</strong> Set Pages Source to <code>GitHub Actions</code>.</div>
               <div class="flow-step"><strong>3.</strong> Ensure `Release Gate` workflow passes before publish.</div>
               <div class="flow-step"><strong>4.</strong> Push and verify workflow success.</div>
-              <div class="flow-step"><strong>5.</strong> Open deployed URL.</div>
+              <div class="flow-step"><strong>5.</strong> Open the deployed site root URL.</div>
             </div>
           </section>
 
@@ -88,13 +88,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: docs
       - id: deployment
         uses: actions/deploy-pages@v4</code></pre>
+            <div class="callout">
+              This matches the official GitHub Pages custom workflow pattern current as of April 2, 2026.
+            </div>
           </section>
 
           <section class="panel reveal" id="settings">
@@ -126,6 +129,7 @@ python3 -m http.server 4173
                 <tr><td>404 on refresh</td><td>Use static `.html` links for each page (no SPA rewrite needed).</td></tr>
                 <tr><td>Styles not loaded</td><td>Verify path to <code>../assets/site.css</code> in language pages.</td></tr>
                 <tr><td>Old page still shown</td><td>Clear browser cache and verify latest Pages deployment artifact.</td></tr>
+                <tr><td>Hidden files missing after deploy</td><td><code>upload-pages-artifact@v4</code> excludes dotfiles by default. Publish them only if you intentionally rebuild the artifact step.</td></tr>
               </tbody>
             </table>
           </section>

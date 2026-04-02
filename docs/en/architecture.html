@@ -57,7 +57,7 @@
 
           <section class="panel reveal" id="runtime">
             <h2>Runtime layout</h2>
-            <h3>v1.4.4 — Composition API</h3>
+            <h3>Current 1.4.x composition runtime</h3>
             <pre><code class="language-txt">React
  └─ WsiViewer (ViewerContext provider)
     ├─ WebGL Canvas (WsiTileRenderer: pan/zoom/rotate)
@@ -70,7 +70,7 @@
     │  ├─ OverlayLayer draws (priority 30)
     │  └─ RegionLayer labels (priority 50)
     ├─ DrawingLayer → DrawLayer (pointer capture, preview)
-    └─ OverviewMap (optional child)</code></pre>
+    └─ OverviewMap host (optional, wired with projectorRef)</code></pre>
             <p>
               Each layer component calls <code>registerDrawCallback(id, priority, fn)</code> to paint into the shared overlay canvas.
               <code>WsiViewer</code> keeps the on-screen surface to one WebGL canvas plus one shared overlay canvas, and dispatches draw callbacks in priority order within a single
@@ -81,7 +81,7 @@
             </p>
             <h3>Removed in v1.4.4 — <code>WsiViewerCanvas</code></h3>
             <p>
-              The old monolithic tree (single component wrapping the same renderer + a separate DrawLayer canvas) is no longer shipped from npm.
+              The old monolithic tree (single component wrapping the same renderer + a separate DrawLayer canvas) is no longer shipped from npm and is absent from the current package (<code>1.4.10</code>).
               Pin <code>open-plant@1.4.3</code> only if you must inspect the historical layout; new work should follow the composition tree above.
             </p>
           </section>
@@ -113,11 +113,12 @@
             <h2>Point pipeline</h2>
             <div class="flow">
               <div class="flow-step"><strong>External parsing:</strong> point loading/decoding (e.g. zstd+MVT) is the caller's responsibility.</div>
-              <div class="flow-step"><strong>Input contract:</strong> accepts <code>Float32Array</code> positions + <code>Uint16Array</code> palette indices, plus optional <code>fillModes</code>/<code>drawIndices</code>.</div>
+              <div class="flow-step"><strong>Input contract:</strong> accepts <code>Float32Array</code> positions + <code>Uint16Array</code> palette indices, plus optional <code>fillModes</code>, <code>ids</code>, and <code>drawIndices</code>.</div>
               <div class="flow-step"><strong>GPU upload:</strong> positions and palette index buffers.</div>
               <div class="flow-step"><strong>Shader render:</strong> palette-based point fragments in ring/solid mode via <code>fillModes</code>.</div>
               <div class="flow-step"><strong>ROI filter:</strong> optional polygon clip before upload/render via <code>clipMode</code>.</div>
-              <div class="flow-step"><strong>ROI stats:</strong> optional per-ROI class aggregation via <code>computeRoiPointGroups</code> / <code>onRoiPointGroups</code>.</div>
+              <div class="flow-step"><strong>Hit-test index:</strong> hover/click/queryAt use a worker-built flat spatial index instead of rebuilding search structures on the main thread.</div>
+              <div class="flow-step"><strong>ROI stats:</strong> per-ROI class aggregation is computed in app code via <code>computeRoiPointGroups</code>.</div>
             </div>
           </section>
 
@@ -147,9 +148,10 @@
             <h2>Draw pipeline</h2>
             <div class="flow">
               <div class="flow-step"><strong>Camera input:</strong> pan + wheel zoom + <code>Ctrl/Cmd + drag</code> rotate (<code>rotationDeg</code>).</div>
-              <div class="flow-step"><strong>Pointer capture:</strong> draw layer captures active pointer in draw mode.</div>
+              <div class="flow-step"><strong>Pointer capture:</strong> draw layer captures the active pointer in draw mode and locks drag-pan through <code>setInteractionLock</code>.</div>
               <div class="flow-step"><strong>Preview:</strong> freehand/rectangle/circle preview polygon or brush cursor+stroke.</div>
-              <div class="flow-step"><strong>Finalize:</strong> close ring and emit <code>DrawResult</code> (<code>intent: "roi" | "patch" | "brush"</code>).</div>
+              <div class="flow-step"><strong>Wheel passthrough:</strong> wheel zoom still routes to the renderer, so magnification changes stay available mid-draw.</div>
+              <div class="flow-step"><strong>Finalize:</strong> close ring and emit <code>onComplete</code> / <code>onPatchComplete</code> payloads (<code>intent: "roi" | "patch" | "brush"</code>).</div>
               <div class="flow-step"><strong>Region interaction:</strong> cursor-mode region hit test is contour + label only (interior fill excluded).</div>
               <div class="flow-step"><strong>Persist:</strong> region outlines and labels remain visible across camera changes.</div>
             </div>

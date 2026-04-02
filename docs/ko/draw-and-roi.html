@@ -50,8 +50,8 @@
             <div class="kicker">Interactive Region</div>
             <h1>Draw + Stamp ROI 툴</h1>
             <p>
-              `drawTool`이 `cursor`가 아닌 동안 `DrawLayer`가 활성화되어
-              pan/zoom과 충돌 없이 ROI를 생성합니다. 결과는 닫힌 polygon 좌표로
+              <code>DrawingLayer</code>가 내부 <code>DrawLayer</code>를 활성화해 drag-pan을 잠그고,
+              wheel zoom은 유지한 채 ROI를 생성합니다. 결과는 <code>onComplete</code>로 닫힌 polygon 좌표로
               반환됩니다. brush도 완료 시점에 <code>intent: "brush"</code> payload를 반환합니다.
               stamp 툴은 클릭 한 번으로 물리 크기 ROI(2mm² 사각형/원, 0.2mm² HPF 원)를
               생성합니다. 고정 픽셀 사각형(<code>stamp-rectangle-4096px</code>)은
@@ -61,7 +61,7 @@
 
           <section class="panel reveal" id="toolbar">
             <h2>1. 툴바와 draw 상태</h2>
-            <h3>v1.4.4 — DrawingLayer</h3>
+            <h3>현재 DrawingLayer API (패키지 1.4.10)</h3>
             <pre><code class="language-tsx">const [drawTool, setDrawTool] = useState("cursor");
 
 &lt;button onClick={() =&gt; setDrawTool("freehand")}&gt;Freehand&lt;/button&gt;
@@ -80,6 +80,9 @@
               <code>DrawingLayer</code>는 <code>interactionLock</code>을 자동 관리합니다. 신규 <code>DrawTool</code> 타입:
               <code>"eraser"</code>, <code>"region-brush"</code>, <code>"region-eraser"</code>, 구조화 stamp
               <code>{ stamp: { shape, areaMm2?, pixelSize? } }</code>.
+            </div>
+            <div class="callout">
+              드로잉 중에는 drag-pan이 잠기지만 wheel zoom은 렌더러로 계속 전달되므로 제스처 도중에도 배율을 바꿀 수 있습니다.
             </div>
             <div class="callout">
               <code>WsiViewerCanvas</code>는 <strong>open-plant@1.4.4</strong>에서 제거되었습니다. 긴급히 레거시만 필요하면 <code>1.4.3</code> 고정을 고려하세요.

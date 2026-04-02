@@ -50,10 +50,11 @@
             <div class="kicker">Interactive Region</div>
             <h1>Draw + Stamp ROI Tools</h1>
             <p>
-              When `drawTool` is not `cursor`, `DrawLayer` captures pointer events and returns
-              closed polygon coordinates through `onDrawComplete`. Brush also emits completion
-              payload (<code>intent: "brush"</code>). Stamp tools place physical-size
-              ROI in one click (2mm² square/circle, 0.2mm² HPF circle). The fixed-pixel
+              <code>DrawingLayer</code> activates the standalone <code>DrawLayer</code>, locks drag-pan,
+              keeps wheel zoom available, and returns closed polygon coordinates through
+              <code>onComplete</code>. Brush also emits completion payload
+              (<code>intent: "brush"</code>). Stamp tools place physical-size ROI in one click
+              (2mm² square/circle, 0.2mm² HPF circle). The fixed-pixel
               <code>stamp-rectangle-4096px</code> emits patch intent and can be handled with
               <code>onPatchComplete</code>.
             </p>
@@ -61,7 +62,7 @@
 
           <section class="panel reveal" id="toolbar">
             <h2>1. Toolbar state</h2>
-            <h3>v1.4.4 — DrawingLayer</h3>
+            <h3>Current DrawingLayer API (package 1.4.10)</h3>
             <pre><code class="language-tsx">const [drawTool, setDrawTool] = useState("cursor");
 
 &lt;button onClick={() =&gt; setDrawTool("freehand")}&gt;Freehand&lt;/button&gt;
@@ -80,6 +81,9 @@
               <code>DrawingLayer</code> manages <code>interactionLock</code> automatically. New <code>DrawTool</code> types:
               <code>"eraser"</code>, <code>"region-brush"</code>, <code>"region-eraser"</code>, and structured stamp
               <code>{ stamp: { shape, areaMm2?, pixelSize? } }</code>.
+            </div>
+            <div class="callout">
+              Drag-pan is locked while drawing, but wheel zoom is still forwarded to the renderer so users can keep changing magnification mid-gesture.
             </div>
             <div class="callout">
               <code>WsiViewerCanvas</code> was removed in <strong>open-plant@1.4.4</strong>. Pin <code>1.4.3</code> only for emergency legacy access.

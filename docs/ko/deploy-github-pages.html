@@ -47,8 +47,8 @@
             <div class="kicker">GitHub Pages</div>
             <h1>`docs/` 정적 사이트 자동 배포</h1>
             <p>
-              `main` 또는 `master` 브랜치 push 시 `docs/`를 artifact로 업로드하고,
-              GitHub Pages에 배포하도록 구성합니다.
+              `main` 또는 `master` 브랜치 push 시 `docs/`를 Pages artifact로 업로드하고,
+              최신 GitHub Pages custom-workflow 패턴으로 배포합니다.
             </p>
           </section>
 
@@ -59,7 +59,7 @@
               <div class="flow-step"><strong>2.</strong> 리포 Settings → Pages → Source: GitHub Actions</div>
               <div class="flow-step"><strong>3.</strong> publish 전 `Release Gate` 워크플로우 통과 확인</div>
               <div class="flow-step"><strong>4.</strong> 브랜치 푸시 후 Actions 완료 확인</div>
-              <div class="flow-step"><strong>5.</strong> 배포 URL에서 `docs/index.html` 확인</div>
+              <div class="flow-step"><strong>5.</strong> 배포된 사이트 루트 URL 확인</div>
             </div>
           </section>
 
@@ -91,13 +91,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: docs
       - id: deployment
         uses: actions/deploy-pages@v4</code></pre>
+            <div class="callout">
+              이 예시는 2026년 4월 2일 기준 GitHub 공식 Pages custom workflow 패턴과 동일합니다.
+            </div>
           </section>
 
           <section class="panel reveal" id="repo-settings">
@@ -135,6 +138,7 @@ python3 -m http.server 4173
                 <tr><td>404 on refresh</td><td>정적 파일 기반 라우팅이므로 SPA rewrite가 필요 없음. 페이지 링크는 `.html` 명시 유지.</td></tr>
                 <tr><td>스타일 미적용</td><td><code>../assets/site.css</code> 상대 경로 오타 확인.</td></tr>
                 <tr><td>페이지가 갱신되지 않음</td><td>브라우저 캐시 또는 이전 배포 artifact 확인 후 강력 새로고침.</td></tr>
+                <tr><td>숨김 파일 누락</td><td><code>upload-pages-artifact@v4</code>는 기본적으로 dotfile을 제외합니다. 정말 필요할 때만 artifact 단계를 커스터마이즈하세요.</td></tr>
               </tbody>
             </table>
           </section>
