@@ -168,6 +168,7 @@ export default function App() {
   const [pointOpacity, setPointOpacity] = useState(1);
   const [pointStrokeScale, setPointStrokeScale] = useState(1);
   const [pointInnerBlackFill, setPointInnerBlackFill] = useState(false);
+  const [pointInnerFillOpacity, setPointInnerFillOpacity] = useState(0.2);
   const [classStrokeOpacityByKey, setClassStrokeOpacityByKey] = useState<Record<string, number>>({});
 
   const pointSizeByZoom = useMemo(
@@ -530,7 +531,9 @@ export default function App() {
             pointStrokeScale={pointStrokeScale}
             onStrokeScaleChange={setPointStrokeScale}
             pointInnerBlackFill={pointInnerBlackFill}
+            pointInnerFillOpacity={pointInnerFillOpacity}
             onInnerBlackFillChange={setPointInnerBlackFill}
+            onInnerFillOpacityChange={setPointInnerFillOpacity}
           />
 
           <ClassColorControls
@@ -575,7 +578,7 @@ export default function App() {
                 sizeByZoom={pointSizeByZoom}
                 opacity={pointOpacity}
                 strokeScale={pointStrokeScale}
-                innerFillOpacity={pointInnerBlackFill ? 0.2 : 0}
+                innerFillOpacity={pointInnerBlackFill ? pointInnerFillOpacity : 0}
                 clipEnabled
                 clipToRegions={draw.roiRegions}
                 clipMode={viewer.clipMode}
