@@ -38,8 +38,6 @@ import { looksPositiveClass } from "./utils/class-resolver";
 import { DEFAULT_INFO_URL, DEFAULT_POINT_SIZE_STOPS } from "./utils/constants";
 import { getRegionTopCenter } from "./utils/region-utils";
 
-const DASHED_ROI_LENGTH = 10;
-
 type ExamplePointClass = {
   classId?: string | null;
   className?: string | null;
@@ -333,13 +331,8 @@ export default function App() {
     return `${source.name} | ${source.width} x ${source.height} | tile ${source.tileSize} | max tier ${source.maxTierZoom}`;
   }, [source]);
 
-  const dashedRoiLineDash = useMemo(() => [DASHED_ROI_LENGTH, Math.max(1, draw.dashedRoiGap)] as number[], [draw.dashedRoiGap]);
   const regionStrokeStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "#ffd166", width: 2.5 }), []);
-  const hiddenRegionStrokeStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "rgba(0, 0, 0, 0)", width: 1 }), []);
-  const dashedRegionStrokeStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "#ffd166", width: 2.5, lineDash: dashedRoiLineDash }), [dashedRoiLineDash]);
   const regionStrokeHoverStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "#ff2f2f", width: 3 }), []);
-  const hiddenRegionStrokeHoverStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "rgba(0, 0, 0, 0)", width: 1 }), []);
-  const dashedRegionStrokeHoverStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "#ff2f2f", width: 3, lineDash: dashedRoiLineDash }), [dashedRoiLineDash]);
   const regionStrokeActiveStyle = useMemo<Partial<RegionStrokeStyle>>(
     () => ({
       color: "#ff2f2f",
@@ -350,29 +343,6 @@ export default function App() {
       shadowOffsetY: 0,
     }),
     []
-  );
-  const hiddenRegionStrokeActiveStyle = useMemo<Partial<RegionStrokeStyle>>(
-    () => ({
-      color: "rgba(0, 0, 0, 0)",
-      width: 1,
-      shadowColor: "rgba(0, 0, 0, 0)",
-      shadowBlur: 0,
-      shadowOffsetX: 0,
-      shadowOffsetY: 0,
-    }),
-    []
-  );
-  const dashedRegionStrokeActiveStyle = useMemo<Partial<RegionStrokeStyle>>(
-    () => ({
-      color: "#ff2f2f",
-      width: 3,
-      lineDash: dashedRoiLineDash,
-      shadowColor: "rgba(255, 47, 47, 0.95)",
-      shadowBlur: 12,
-      shadowOffsetX: 0,
-      shadowOffsetY: 0,
-    }),
-    [dashedRoiLineDash]
   );
 
   const resolveRegionStrokeStyle = useCallback((context: RegionStyleContext): Partial<RegionStrokeStyle> | undefined => {
@@ -387,28 +357,7 @@ export default function App() {
     }
     return undefined;
   }, []);
-  const resolveDashedRegionStrokeStyle = useCallback((context: RegionStyleContext): Partial<RegionStrokeStyle> | undefined => {
-    if (context.state === "active") {
-      return { color: "#ff2f2f", width: 3.2, lineDash: dashedRoiLineDash, shadowColor: "rgba(255, 47, 47, 0.95)", shadowBlur: 12, shadowOffsetX: 0, shadowOffsetY: 0 };
-    }
-    if (context.state === "hover") {
-      return { color: "#ff2f2f", width: 3, lineDash: dashedRoiLineDash };
-    }
-    if (context.regionIndex % 2 === 1) {
-      return { color: "#ffe08a", width: 2.25, lineDash: dashedRoiLineDash };
-    }
-    return undefined;
-  }, [dashedRoiLineDash]);
-
   const regionLabelStyle = useMemo<Partial<RegionLabelStyle>>(() => ({ backgroundColor: "rgba(8, 14, 22, 0.9)", borderColor: "#ffd166", textColor: "#fff4cc", borderRadius: 4, fontSize: 12 }), []);
-  const hiddenRegionLabelStyle = useMemo<Partial<RegionLabelStyle>>(
-    () => ({
-      backgroundColor: "rgba(0, 0, 0, 0)",
-      borderColor: "rgba(0, 0, 0, 0)",
-      textColor: "rgba(0, 0, 0, 0)",
-    }),
-    []
-  );
 
   const patchStrokeStyle = useMemo<Partial<RegionStrokeStyle>>(() => ({ color: "#8ad8ff", width: 2, lineDash: [10, 8] }), []);
 
@@ -502,9 +451,6 @@ export default function App() {
     };
   }, [pointData.pointPayload, positivePaletteIndex]);
 
-  const solidRoiRegions = useMemo(() => draw.roiRegions.filter(region => !region.dashed), [draw.roiRegions]);
-  const dashedRoiRegions = useMemo(() => draw.roiRegions.filter(region => region.dashed), [draw.roiRegions]);
-
   const heatmapMode = heatmapScaleMode;
 
   return (
@@ -551,10 +497,6 @@ export default function App() {
             onBrushOpacityChange={draw.setBrushOpacity}
             brushEraserPreview={draw.brushEraserPreview}
             onToggleBrushEraserPreview={() => draw.setBrushEraserPreview(prev => !prev)}
-            dashedRoi={draw.dashedRoi}
-            onToggleDashedRoi={() => draw.setDashedRoi(prev => !prev)}
-            dashedRoiGap={draw.dashedRoiGap}
-            onDashedRoiGapChange={draw.handleDashedRoiGapChange}
             autoLiftRegionLabelAtMaxZoom={draw.autoLiftRegionLabelAtMaxZoom}
             onToggleAutoLift={() => draw.setAutoLiftRegionLabelAtMaxZoom(prev => !prev)}
             enableZoomSnaps={viewer.enableZoomSnaps}
@@ -657,19 +599,6 @@ export default function App() {
               />
               <RegionLayer
                 regions={draw.roiRegions}
-                strokeStyle={hiddenRegionStrokeStyle}
-                hoverStrokeStyle={hiddenRegionStrokeHoverStyle}
-                activeStrokeStyle={hiddenRegionStrokeActiveStyle}
-                labelStyle={hiddenRegionLabelStyle}
-                autoLiftLabelAtMaxZoom={draw.autoLiftRegionLabelAtMaxZoom}
-                hoveredRegionId={hoveredRegionId}
-                activeRegionId={activeRegionId}
-                onActiveChange={handleActiveRegionChange}
-                onHover={handleRegionHover}
-                onClick={handleRegionClick}
-              />
-              <RegionLayer
-                regions={solidRoiRegions}
                 strokeStyle={regionStrokeStyle}
                 hoverStrokeStyle={regionStrokeHoverStyle}
                 activeStrokeStyle={regionStrokeActiveStyle}
@@ -678,19 +607,9 @@ export default function App() {
                 autoLiftLabelAtMaxZoom={draw.autoLiftRegionLabelAtMaxZoom}
                 hoveredRegionId={hoveredRegionId}
                 activeRegionId={activeRegionId}
-                interactive={false}
-              />
-              <RegionLayer
-                regions={dashedRoiRegions}
-                strokeStyle={dashedRegionStrokeStyle}
-                hoverStrokeStyle={dashedRegionStrokeHoverStyle}
-                activeStrokeStyle={dashedRegionStrokeActiveStyle}
-                resolveStrokeStyle={resolveDashedRegionStrokeStyle}
-                labelStyle={regionLabelStyle}
-                autoLiftLabelAtMaxZoom={draw.autoLiftRegionLabelAtMaxZoom}
-                hoveredRegionId={hoveredRegionId}
-                activeRegionId={activeRegionId}
-                interactive={false}
+                onActiveChange={handleActiveRegionChange}
+                onHover={handleRegionHover}
+                onClick={handleRegionClick}
               />
               <DrawingLayer tool={draw.drawTool} stampOptions={draw.stampOptions} brushOptions={draw.brushOptions} onComplete={draw.handleDrawComplete} onPatchComplete={draw.handlePatchComplete} />
               <OverlayLayer shapes={overlayShapes} />

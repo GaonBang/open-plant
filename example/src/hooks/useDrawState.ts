@@ -10,12 +10,6 @@ import {
 	type WsiRegion,
 } from "../../../src";
 
-export type ExampleRoiRegion = WsiRegion & {
-	dashed?: boolean;
-};
-
-const DEFAULT_DASHED_ROI_GAP = 8;
-
 export function useDrawState(
 	source: { id: string; name: string; width: number; height: number } | null,
 	classes: WsiClass[],
@@ -24,7 +18,7 @@ export function useDrawState(
 	const [drawTool, setDrawTool] = useState<DrawTool>("cursor");
 	const [labelInput, setLabelInput] = useState("");
 	const [lastDraw, setLastDraw] = useState<DrawResult | null>(null);
-	const [roiRegions, setRoiRegions] = useState<ExampleRoiRegion[]>([]);
+	const [roiRegions, setRoiRegions] = useState<WsiRegion[]>([]);
 	const [patchRegions, setPatchRegions] = useState<WsiRegion[]>([]);
 	const [lastPatch, setLastPatch] = useState<PatchDrawResult | null>(null);
 	const [lastPatchIndices, setLastPatchIndices] = useState<Uint32Array>(new Uint32Array(0));
@@ -36,9 +30,6 @@ export function useDrawState(
 	const [brushRadius, setBrushRadius] = useState(480);
 	const [brushOpacity, setBrushOpacity] = useState(0.1);
 	const [brushEraserPreview, setBrushEraserPreview] = useState(false);
-	const [dashedRoi, setDashedRoi] = useState(false);
-	const [dashedRoiGap, setDashedRoiGap] = useState(DEFAULT_DASHED_ROI_GAP);
-
 	const [autoLiftRegionLabelAtMaxZoom, setAutoLiftRegionLabelAtMaxZoom] = useState(true);
 
 	const stampOptions = useMemo(
@@ -102,13 +93,12 @@ export function useDrawState(
 						id: `${Date.now()}-${prev.length}`,
 						coordinates: payload.coordinates,
 						label,
-						dashed: dashedRoi,
 					},
 				]);
 			}
 			setDrawTool("cursor");
 		},
-		[dashedRoi, labelInput],
+		[labelInput],
 	);
 
 	const handleClearRoi = useCallback(() => {
@@ -163,13 +153,6 @@ export function useDrawState(
 		if (Number.isFinite(next) && next > 0) setStampCircleAreaMm2(next);
 	}, []);
 
-	const handleDashedRoiGapChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-		const next = Number(e.target.value);
-		if (Number.isFinite(next) && next > 0) {
-			setDashedRoiGap(next);
-		}
-	}, []);
-
 	const reset = useCallback(() => {
 		setDrawTool("cursor");
 		setLastDraw(null);
@@ -177,8 +160,6 @@ export function useDrawState(
 		setPatchRegions([]);
 		setLastPatch(null);
 		setLastPatchIndices(new Uint32Array(0));
-		setDashedRoi(false);
-		setDashedRoiGap(DEFAULT_DASHED_ROI_GAP);
 	}, []);
 
 	return {
@@ -206,11 +187,6 @@ export function useDrawState(
 		setBrushOpacity,
 		brushEraserPreview,
 		setBrushEraserPreview,
-		dashedRoi,
-		setDashedRoi,
-		dashedRoiGap,
-		setDashedRoiGap,
-		handleDashedRoiGapChange,
 		brushOptions,
 
 		autoLiftRegionLabelAtMaxZoom,
