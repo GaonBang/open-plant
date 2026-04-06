@@ -14,6 +14,7 @@ import {
   MAX_POINT_SIZE_PX,
   MIN_POINT_SIZE_PX,
   normalizePointInnerFillOpacity,
+  normalizePointLineDash,
   normalizePointOpacity,
   normalizePointSizeStops,
   normalizeStrokeScale,
@@ -106,6 +107,7 @@ export class WsiTileRenderer {
   private pointPaletteSize = 1;
   private pointSizeStops: PointSizeStop[] = clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
   private pointOpacity = 1.0;
+  private pointLineDash: [number, number] = [1, 0];
   private pointStrokeScale = 1.0;
   private pointInnerFillOpacity = 0;
   private imageColorSettings: NormalizedImageColorSettings = {
@@ -380,6 +382,13 @@ export class WsiTileRenderer {
     this.requestRender();
   }
 
+  setPointLineDash(dashed: [number, number] | null | undefined): void {
+    const next = normalizePointLineDash(dashed);
+    if (this.pointLineDash === next) return;
+    this.pointLineDash = next;
+    this.requestRender();
+  }
+
   setPointData(points: WsiPointData | null | undefined): void {
     const nextRuntime = setManagedPointData(this.getPointBufferRuntime(), this.gl, this.pointProgram, this.contextLost, points);
     this.applyPointBufferRuntime(nextRuntime);
@@ -562,8 +571,7 @@ export class WsiTileRenderer {
     const epsilon = Math.max(Math.abs(targetZoom) * 0.005, 1e-8);
 
     if (ongoing) {
-      const ongoingDirection: "in" | "out" | null =
-        ongoing.to.zoom > ongoing.from.zoom + epsilon ? "in" : ongoing.to.zoom < ongoing.from.zoom - epsilon ? "out" : null;
+      const ongoingDirection: "in" | "out" | null = ongoing.to.zoom > ongoing.from.zoom + epsilon ? "in" : ongoing.to.zoom < ongoing.from.zoom - epsilon ? "out" : null;
       if (ongoingDirection === direction && Math.abs(ongoing.to.zoom - targetZoom) <= epsilon) {
         return false;
       }
@@ -593,6 +601,7 @@ export class WsiTileRenderer {
       usePointIndices: this.usePointIndices,
       pointPaletteSize: this.pointPaletteSize,
       pointOpacity: this.pointOpacity,
+      pointLineDash: this.pointLineDash,
       pointStrokeScale: this.pointStrokeScale,
       pointInnerFillOpacity: this.pointInnerFillOpacity,
       pointSizePx: this.getPointSizeByZoom() * Math.max(1, window.devicePixelRatio || 1),

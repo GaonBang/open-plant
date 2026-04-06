@@ -21,6 +21,7 @@ export interface PointLayerProps {
   onClipStats?: (event: PointClipStatsEvent) => void;
   onHover?: (event: PointHoverEvent) => void;
   onClick?: (event: PointClickEvent) => void;
+  dashed?: [number, number];
 }
 
 export interface PointQueryHandle {
@@ -28,21 +29,8 @@ export interface PointQueryHandle {
 }
 
 export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function PointLayer(
-  {
-    data = null,
-    palette = null,
-    sizeByZoom,
-    opacity,
-    strokeScale,
-    innerFillOpacity,
-    clipEnabled = false,
-    clipToRegions,
-    clipMode = "worker",
-    onClipStats,
-    onHover,
-    onClick,
-  },
-  ref,
+  { data = null, palette = null, sizeByZoom, opacity, strokeScale, innerFillOpacity, clipEnabled = false, clipToRegions, clipMode = "worker", onClipStats, onHover, onClick, dashed },
+  ref
 ) {
   const { rendererRef, rendererSerial, source } = useViewerContext();
   const getCellByCoordinatesRef = useRef<((coordinate: DrawCoordinate) => PointHitEvent | null) | null>(null);
@@ -51,15 +39,7 @@ export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function
 
   const renderPointData = usePointClipping(clipEnabled, clipMode, data, effectiveClipRegions, onClipStats);
 
-  const { getCellByCoordinates } = usePointHitTest(
-    renderPointData,
-    source,
-    onHover,
-    onClick,
-    getCellByCoordinatesRef,
-    "cursor",
-    rendererRef,
-  );
+  const { getCellByCoordinates } = usePointHitTest(renderPointData, source, onHover, onClick, getCellByCoordinatesRef, "cursor", rendererRef);
 
   useImperativeHandle(ref, () => ({ queryAt: getCellByCoordinates }), [getCellByCoordinates]);
 
@@ -68,6 +48,12 @@ export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function
     if (!renderer || !palette) return;
     renderer.setPointPalette(palette);
   }, [rendererSerial, palette]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || !dashed) return;
+    renderer.setPointLineDash(dashed);
+  }, [rendererSerial, dashed]);
 
   useEffect(() => {
     const renderer = rendererRef.current;

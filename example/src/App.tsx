@@ -167,9 +167,16 @@ export default function App() {
   const [pointSizeStop8, setPointSizeStop8] = useState<number>(DEFAULT_POINT_SIZE_STOPS[8]);
   const [pointOpacity, setPointOpacity] = useState(1);
   const [pointStrokeScale, setPointStrokeScale] = useState(1);
+  const [pointDashed, setPointDashed] = useState(false);
+  const [pointDashLength, setPointDashLength] = useState(10);
+  const [pointDashGap, setPointDashGap] = useState(8);
   const [pointInnerBlackFill, setPointInnerBlackFill] = useState(false);
   const [pointInnerFillOpacity, setPointInnerFillOpacity] = useState(0.2);
   const [classStrokeOpacityByKey, setClassStrokeOpacityByKey] = useState<Record<string, number>>({});
+  const pointLineDash = useMemo<[number, number] | undefined>(
+    () => (pointDashed ? [Math.max(1, pointDashLength), Math.max(1, pointDashGap)] : undefined),
+    [pointDashed, pointDashLength, pointDashGap]
+  );
 
   const pointSizeByZoom = useMemo(
     () => ({ 1: pointSizeStop1, 2: pointSizeStop2, 5: pointSizeStop5, 6: pointSizeStop6, 8: pointSizeStop8 }) as const,
@@ -529,6 +536,12 @@ export default function App() {
             onOpacityChange={setPointOpacity}
             pointStrokeScale={pointStrokeScale}
             onStrokeScaleChange={setPointStrokeScale}
+            pointDashed={pointDashed}
+            pointDashLength={pointDashLength}
+            pointDashGap={pointDashGap}
+            onPointDashedChange={setPointDashed}
+            onPointDashLengthChange={setPointDashLength}
+            onPointDashGapChange={setPointDashGap}
             pointInnerBlackFill={pointInnerBlackFill}
             pointInnerFillOpacity={pointInnerFillOpacity}
             onInnerBlackFillChange={setPointInnerBlackFill}
@@ -577,6 +590,7 @@ export default function App() {
                 sizeByZoom={pointSizeByZoom}
                 opacity={pointOpacity}
                 strokeScale={pointStrokeScale}
+                dashed={pointLineDash}
                 innerFillOpacity={pointInnerBlackFill ? pointInnerFillOpacity : 0}
                 clipEnabled
                 clipToRegions={draw.roiRegions}

@@ -15,6 +15,7 @@ export interface RenderFrameOptions {
   pointCount: number;
   usePointIndices: boolean;
   pointPaletteSize: number;
+  pointLineDash: [number, number];
   pointOpacity: number;
   pointStrokeScale: number;
   pointInnerFillOpacity: number;
@@ -50,6 +51,7 @@ export function renderFrame(options: RenderFrameOptions): RenderFrameResult {
     pointCount,
     usePointIndices,
     pointPaletteSize,
+    pointLineDash,
     pointOpacity,
     pointStrokeScale,
     pointInnerFillOpacity,
@@ -134,6 +136,7 @@ export function renderFrame(options: RenderFrameOptions): RenderFrameResult {
     gl.bindVertexArray(pointProgram.vao);
     gl.uniformMatrix3fv(pointProgram.uCamera, false, camera.getMatrix());
     gl.uniform1f(pointProgram.uPointSize, pointSizePx);
+    gl.uniform2f(pointProgram.uPointLineDash, pointLineDash[0], pointLineDash[1]);
     gl.uniform1f(pointProgram.uPointOpacity, pointOpacity);
     gl.uniform1f(pointProgram.uPointStrokeScale, pointStrokeScale);
     gl.uniform1f(pointProgram.uPointInnerFillAlpha, pointInnerFillOpacity);

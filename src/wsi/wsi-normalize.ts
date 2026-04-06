@@ -107,6 +107,11 @@ export function normalizePointOpacity(value: number | null | undefined): number 
   return clamp(value, MIN_POINT_OPACITY, MAX_POINT_OPACITY);
 }
 
+export function normalizePointLineDash(dashed: [number, number] | null | undefined): [number, number] {
+  if (!dashed) return [1, 0];
+  return [clamp(dashed[0], 0, 100), clamp(dashed[1], 0, 100)];
+}
+
 export function normalizePointInnerFillOpacity(value: number | null | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return clamp(value, MIN_POINT_INNER_FILL_OPACITY, MAX_POINT_INNER_FILL_OPACITY);

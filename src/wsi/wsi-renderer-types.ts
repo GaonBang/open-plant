@@ -37,6 +37,7 @@ export interface PointProgram {
   uPalette: WebGLUniformLocation;
   uPaletteSize: WebGLUniformLocation;
   uPointOpacity: WebGLUniformLocation;
+  uPointLineDash: WebGLUniformLocation;
   uPointStrokeScale: WebGLUniformLocation;
   uPointInnerFillAlpha: WebGLUniformLocation;
 }

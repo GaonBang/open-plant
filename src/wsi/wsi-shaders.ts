@@ -115,6 +115,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
 
   const pointFragment = `#version 300 es
     precision highp float;
+    const float PI = 3.14159265358979323846;
     flat in uint vClass;
     flat in uint vFillMode;
     uniform sampler2D uPalette;
@@ -123,6 +124,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
     uniform float uPointOpacity;
     uniform float uPointStrokeScale;
     uniform float uPointInnerFillAlpha;
+    uniform vec2 uPointLineDash;
     out vec4 outColor;
     void main() {
       vec2 pc = gl_PointCoord * 2.0 - 1.0;
@@ -146,7 +148,15 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
         float ringWidth = s * mix(0.18, 0.35, smoothstep(3.0, 16.0, uPointSize));
         float innerRadius = 1.0 - ringWidth;
         float innerMask = smoothstep(innerRadius - aa, innerRadius + aa, r);
-        float ringAlpha = outerMask * innerMask * color.a;
+        float dashMask = 1.0;
+        if (uPointLineDash.x > 0.0 && uPointLineDash.y > 0.0) {
+          float angle01 = (atan(pc.y, pc.x) + PI) / (2.0 * PI);
+          float circumferencePx = max(1.0, 2.0 * PI * max(0.5, uPointSize * 0.5));
+          float dashCycle = uPointLineDash.x + uPointLineDash.y;
+          float dashOffset = mod(angle01 * circumferencePx, dashCycle);
+          dashMask = dashOffset <= uPointLineDash.x ? 1.0 : 0.0;
+        }
+        float ringAlpha = outerMask * innerMask * dashMask * color.a;
         float fillAlpha = outerMask * (1.0 - innerMask) * clamp(uPointInnerFillAlpha, 0.0, 1.0);
         float alpha = (ringAlpha + fillAlpha) * pointOpacity;
         if (alpha <= 0.001) discard;
@@ -163,6 +173,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
   const uPointInnerFillAlpha = requireUniformLocation(gl, program, "uPointInnerFillAlpha");
   const uPalette = requireUniformLocation(gl, program, "uPalette");
   const uPaletteSize = requireUniformLocation(gl, program, "uPaletteSize");
+  const uPointLineDash = requireUniformLocation(gl, program, "uPointLineDash");
 
   const vao = gl.createVertexArray();
   const posBuffer = gl.createBuffer();
@@ -229,6 +240,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
     uCamera,
     uPointSize,
     uPointOpacity,
+    uPointLineDash,
     uPointStrokeScale,
     uPointInnerFillAlpha,
     uPalette,
