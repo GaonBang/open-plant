@@ -59,7 +59,7 @@ export interface DestroyRendererOptions {
   gl: WebGL2RenderingContext;
   cache: Map<string, CachedTile>;
   tileProgram: TileVertexProgram;
-  pointProgram: PointProgram;
+  pointPrograms: PointProgram[];
 }
 
 export interface DestroyRendererResult {
@@ -93,13 +93,16 @@ export function destroyRenderer(options: DestroyRendererOptions): DestroyRendere
     options.gl.deleteVertexArray(options.tileProgram.vao);
     options.gl.deleteProgram(options.tileProgram.program);
 
-    options.gl.deleteBuffer(options.pointProgram.posBuffer);
-    options.gl.deleteBuffer(options.pointProgram.classBuffer);
-    options.gl.deleteBuffer(options.pointProgram.fillModeBuffer);
-    options.gl.deleteBuffer(options.pointProgram.indexBuffer);
-    options.gl.deleteTexture(options.pointProgram.paletteTexture);
-    options.gl.deleteVertexArray(options.pointProgram.vao);
-    options.gl.deleteProgram(options.pointProgram.program);
+    for (let i = 0; i < options.pointPrograms.length; i += 1) {
+      const pointProgram = options.pointPrograms[i];
+      options.gl.deleteBuffer(pointProgram.posBuffer);
+      options.gl.deleteBuffer(pointProgram.classBuffer);
+      options.gl.deleteBuffer(pointProgram.fillModeBuffer);
+      options.gl.deleteBuffer(pointProgram.indexBuffer);
+      options.gl.deleteTexture(pointProgram.paletteTexture);
+      options.gl.deleteVertexArray(pointProgram.vao);
+      options.gl.deleteProgram(pointProgram.program);
+    }
   }
   options.cache.clear();
 

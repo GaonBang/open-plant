@@ -22,6 +22,7 @@ export function usePointHitTest(
   getCellByCoordinatesRef: MutableRefObject<((coordinate: DrawCoordinate) => PointHitEvent | null) | null> | undefined,
   drawTool: DrawTool,
   rendererRef: MutableRefObject<WsiTileRenderer | null>,
+  pointLayerId?: string,
 ): UsePointHitTestResult {
   const shouldEnablePointHitTest = Boolean(onPointHover || onPointClick || getCellByCoordinatesRef);
   const [pointSpatialIndex, setPointSpatialIndex] = useState<FlatPointSpatialIndex | null>(null);
@@ -54,7 +55,7 @@ export function usePointHitTest(
       if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
 
       const zoom = Math.max(1e-6, renderer.getViewState().zoom);
-      const pointSizePx = renderer.getPointSizeByZoom();
+      const pointSizePx = renderer.getPointSizeByZoom(pointLayerId);
       const hitRadiusPx = Math.max(MIN_POINT_HIT_RADIUS_PX, pointSizePx * POINT_HIT_RADIUS_SCALE);
       const hitRadiusWorld = hitRadiusPx / zoom;
       if (!Number.isFinite(hitRadiusWorld) || hitRadiusWorld <= 0) return null;
@@ -105,7 +106,7 @@ export function usePointHitTest(
         pointCoordinate: [nearestX, nearestY],
       };
     },
-    [pointSpatialIndex],
+    [pointLayerId, pointSpatialIndex],
   );
 
   const emitPointHover = useCallback(

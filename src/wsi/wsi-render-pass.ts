@@ -3,15 +3,8 @@ import type { ScheduledTile, TileScheduler } from "./tile-scheduler";
 import type { WsiImageSource } from "./types";
 import type { Bounds, CachedTile, NormalizedImageColorSettings, PointProgram, TileVertexProgram } from "./wsi-renderer-types";
 
-export interface RenderFrameOptions {
-  gl: WebGL2RenderingContext;
-  camera: OrthoCamera;
-  source: WsiImageSource;
-  cache: Map<string, CachedTile>;
-  frameSerial: number;
-  tileProgram: TileVertexProgram;
+export interface RenderPointLayer {
   pointProgram: PointProgram;
-  imageColorSettings: NormalizedImageColorSettings;
   pointCount: number;
   usePointIndices: boolean;
   pointPaletteSize: number;
@@ -20,6 +13,17 @@ export interface RenderFrameOptions {
   pointStrokeScale: number;
   pointInnerFillOpacity: number;
   pointSizePx: number;
+}
+
+export interface RenderFrameOptions {
+  gl: WebGL2RenderingContext;
+  camera: OrthoCamera;
+  source: WsiImageSource;
+  cache: Map<string, CachedTile>;
+  frameSerial: number;
+  tileProgram: TileVertexProgram;
+  imageColorSettings: NormalizedImageColorSettings;
+  pointLayers: readonly RenderPointLayer[];
   tileScheduler: TileScheduler;
   getVisibleTiles: () => { tier: number; visible: ScheduledTile[] };
   getVisibleTilesForTier: (tier: number) => ScheduledTile[];
@@ -46,16 +50,8 @@ export function renderFrame(options: RenderFrameOptions): RenderFrameResult {
     cache,
     frameSerial,
     tileProgram,
-    pointProgram,
     imageColorSettings,
-    pointCount,
-    usePointIndices,
-    pointPaletteSize,
-    pointLineDash,
-    pointOpacity,
-    pointStrokeScale,
-    pointInnerFillOpacity,
-    pointSizePx,
+    pointLayers,
     tileScheduler,
     getVisibleTiles,
     getVisibleTilesForTier,
@@ -129,29 +125,36 @@ export function renderFrame(options: RenderFrameOptions): RenderFrameResult {
   gl.bindVertexArray(null);
 
   let renderedPoints = 0;
-  if (pointCount > 0) {
+  let pointDrawCalls = 0;
+  if (pointLayers.length > 0) {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.useProgram(pointProgram.program);
-    gl.bindVertexArray(pointProgram.vao);
-    gl.uniformMatrix3fv(pointProgram.uCamera, false, camera.getMatrix());
-    gl.uniform1f(pointProgram.uPointSize, pointSizePx);
-    gl.uniform2f(pointProgram.uPointLineDash, pointLineDash[0], pointLineDash[1]);
-    gl.uniform1f(pointProgram.uPointOpacity, pointOpacity);
-    gl.uniform1f(pointProgram.uPointStrokeScale, pointStrokeScale);
-    gl.uniform1f(pointProgram.uPointInnerFillAlpha, pointInnerFillOpacity);
-    gl.uniform1f(pointProgram.uPaletteSize, pointPaletteSize);
-    gl.uniform1i(pointProgram.uPalette, 1);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, pointProgram.paletteTexture);
-    if (usePointIndices) {
-      gl.drawElements(gl.POINTS, pointCount, gl.UNSIGNED_INT, 0);
-    } else {
-      gl.drawArrays(gl.POINTS, 0, pointCount);
+    for (let i = 0; i < pointLayers.length; i += 1) {
+      const layer = pointLayers[i];
+      if (layer.pointCount <= 0) continue;
+
+      gl.useProgram(layer.pointProgram.program);
+      gl.bindVertexArray(layer.pointProgram.vao);
+      gl.uniformMatrix3fv(layer.pointProgram.uCamera, false, camera.getMatrix());
+      gl.uniform1f(layer.pointProgram.uPointSize, layer.pointSizePx);
+      gl.uniform2f(layer.pointProgram.uPointLineDash, layer.pointLineDash[0], layer.pointLineDash[1]);
+      gl.uniform1f(layer.pointProgram.uPointOpacity, layer.pointOpacity);
+      gl.uniform1f(layer.pointProgram.uPointStrokeScale, layer.pointStrokeScale);
+      gl.uniform1f(layer.pointProgram.uPointInnerFillAlpha, layer.pointInnerFillOpacity);
+      gl.uniform1f(layer.pointProgram.uPaletteSize, layer.pointPaletteSize);
+      gl.uniform1i(layer.pointProgram.uPalette, 1);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, layer.pointProgram.paletteTexture);
+      if (layer.usePointIndices) {
+        gl.drawElements(gl.POINTS, layer.pointCount, gl.UNSIGNED_INT, 0);
+      } else {
+        gl.drawArrays(gl.POINTS, 0, layer.pointCount);
+      }
+      renderedPoints += layer.pointCount;
+      pointDrawCalls += 1;
     }
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindVertexArray(null);
-    renderedPoints = pointCount;
   }
 
   return {
@@ -162,6 +165,6 @@ export function renderFrame(options: RenderFrameOptions): RenderFrameResult {
     fallback: fallbackTiles.length,
     cacheHits: renderedTiles,
     cacheMisses: missingTiles.length,
-    drawCalls: fallbackTiles.length + renderedTiles + (renderedPoints > 0 ? 1 : 0),
+    drawCalls: fallbackTiles.length + renderedTiles + pointDrawCalls,
   };
 }

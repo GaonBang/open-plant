@@ -28,62 +28,75 @@ export interface PointQueryHandle {
   queryAt: (coordinate: DrawCoordinate) => PointHitEvent | null;
 }
 
+let nextPointLayerId = 0;
+
 export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function PointLayer(
   { data = null, palette = null, sizeByZoom, opacity, strokeScale, innerFillOpacity, clipEnabled = false, clipToRegions, clipMode = "worker", onClipStats, onHover, onClick, dashed },
   ref
 ) {
   const { rendererRef, rendererSerial, source } = useViewerContext();
   const getCellByCoordinatesRef = useRef<((coordinate: DrawCoordinate) => PointHitEvent | null) | null>(null);
+  const layerIdRef = useRef(`__point_layer__${nextPointLayerId++}`);
 
   const effectiveClipRegions = clipToRegions ?? EMPTY_REGIONS;
 
   const renderPointData = usePointClipping(clipEnabled, clipMode, data, effectiveClipRegions, onClipStats);
 
-  const { getCellByCoordinates } = usePointHitTest(renderPointData, source, onHover, onClick, getCellByCoordinatesRef, "cursor", rendererRef);
+  const { getCellByCoordinates } = usePointHitTest(renderPointData, source, onHover, onClick, getCellByCoordinatesRef, "cursor", rendererRef, layerIdRef.current);
 
   useImperativeHandle(ref, () => ({ queryAt: getCellByCoordinates }), [getCellByCoordinates]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
-    if (!renderer || !palette) return;
-    renderer.setPointPalette(palette);
-  }, [rendererSerial, palette]);
-
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || !dashed) return;
-    renderer.setPointLineDash(dashed);
-  }, [rendererSerial, dashed]);
-
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || sizeByZoom === undefined) return;
-    renderer.setPointSizeByZoom(sizeByZoom);
-  }, [rendererSerial, sizeByZoom]);
-
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || opacity === undefined) return;
-    renderer.setPointOpacity(opacity);
-  }, [rendererSerial, opacity]);
-
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || strokeScale === undefined) return;
-    renderer.setPointStrokeScale(strokeScale);
-  }, [rendererSerial, strokeScale]);
-
-  useEffect(() => {
-    const renderer = rendererRef.current;
-    if (!renderer || innerFillOpacity === undefined) return;
-    renderer.setPointInnerFillOpacity(innerFillOpacity);
-  }, [rendererSerial, innerFillOpacity]);
+    if (!renderer) return;
+    const layerId = layerIdRef.current;
+    renderer.registerPointLayer(layerId);
+    return () => {
+      renderer.unregisterPointLayer(layerId);
+    };
+  }, [rendererRef, rendererSerial]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
-    renderer.setPointData(renderPointData);
-  }, [rendererSerial, renderPointData]);
+    renderer.setPointPalette(palette, layerIdRef.current);
+  }, [rendererSerial, palette, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setPointLineDash(dashed, layerIdRef.current);
+  }, [rendererSerial, dashed, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || sizeByZoom === undefined) return;
+    renderer.setPointSizeByZoom(sizeByZoom, layerIdRef.current);
+  }, [rendererSerial, sizeByZoom, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || opacity === undefined) return;
+    renderer.setPointOpacity(opacity, layerIdRef.current);
+  }, [rendererSerial, opacity, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || strokeScale === undefined) return;
+    renderer.setPointStrokeScale(strokeScale, layerIdRef.current);
+  }, [rendererSerial, strokeScale, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || innerFillOpacity === undefined) return;
+    renderer.setPointInnerFillOpacity(innerFillOpacity, layerIdRef.current);
+  }, [rendererSerial, innerFillOpacity, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setPointData(renderPointData, layerIdRef.current);
+  }, [rendererSerial, renderPointData, rendererRef]);
 
   return null;
 });

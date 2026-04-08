@@ -27,6 +27,7 @@ import {
 import type { PointBufferRuntime } from "./wsi-point-data";
 import { setPointData as setManagedPointData, setPointPalette as setManagedPointPalette } from "./wsi-point-data";
 import { renderFrame } from "./wsi-render-pass";
+import type { RenderPointLayer } from "./wsi-render-pass";
 import type {
   Bounds,
   CachedTile,
@@ -58,6 +59,19 @@ import { normalizeZoomSnaps, resolveSnapTarget, SNAP_ZOOM_DURATION_MS, startZoom
 
 export type { PointSizeByZoom, WsiTileErrorEvent, WsiTileRendererOptions, WsiTileSchedulerConfig, WsiViewTransitionOptions } from "./wsi-renderer-types";
 
+const DEFAULT_POINT_LAYER_ID = "__default_point_layer__";
+
+interface ManagedPointLayerState {
+  id: string;
+  program: PointProgram;
+  runtime: PointBufferRuntime;
+  pointSizeStops: PointSizeStop[];
+  pointOpacity: number;
+  pointLineDash: [number, number];
+  pointStrokeScale: number;
+  pointInnerFillOpacity: number;
+}
+
 export class WsiTileRenderer {
   private readonly canvas: HTMLCanvasElement;
   private readonly source: WsiImageSource;
@@ -70,7 +84,6 @@ export class WsiTileRenderer {
   private readonly onContextRestored?: () => void;
   private readonly resizeObserver: ResizeObserver;
   private tileProgram: TileVertexProgram;
-  private pointProgram: PointProgram;
   private readonly tileScheduler: TileScheduler;
 
   private authToken: string;
@@ -101,23 +114,17 @@ export class WsiTileRenderer {
     animation: null,
     frame: null,
   };
-  private pointCount = 0;
-  private usePointIndices = false;
-  private pointBuffersDirty = true;
-  private pointPaletteSize = 1;
-  private pointSizeStops: PointSizeStop[] = clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
-  private pointOpacity = 1.0;
-  private pointLineDash: [number, number] = [1, 0];
-  private pointStrokeScale = 1.0;
-  private pointInnerFillOpacity = 0;
+  private readonly pointLayers = new Map<string, ManagedPointLayerState>();
+  private defaultPointSizeStops: PointSizeStop[] = clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
+  private defaultPointOpacity = 1.0;
+  private defaultPointLineDash: [number, number] = [1, 0];
+  private defaultPointStrokeScale = 1.0;
+  private defaultPointInnerFillOpacity = 0;
   private imageColorSettings: NormalizedImageColorSettings = {
     brightness: 0,
     contrast: 0,
     saturation: 0,
   };
-  private lastPointData: WsiPointData | null = null;
-  private lastPointPalette: Uint8Array<ArrayBufferLike> | null = null;
-  private zeroFillModes: Uint8Array<ArrayBufferLike> = new Uint8Array(0);
   private cache = new Map<string, CachedTile>();
   private zoomSnaps: number[] = [];
   private zoomSnapFitAsMin = false;
@@ -162,10 +169,10 @@ export class WsiTileRenderer {
       typeof options.rotationDragSensitivityDegPerPixel === "number" && Number.isFinite(options.rotationDragSensitivityDegPerPixel)
         ? Math.max(0, options.rotationDragSensitivityDegPerPixel)
         : DEFAULT_ROTATION_DRAG_SENSITIVITY;
-    this.pointSizeStops = normalizePointSizeStops(options.pointSizeByZoom);
-    this.pointOpacity = normalizePointOpacity(options.pointOpacity);
-    this.pointStrokeScale = normalizeStrokeScale(options.pointStrokeScale);
-    this.pointInnerFillOpacity = normalizePointInnerFillOpacity(options.pointInnerFillOpacity);
+    this.defaultPointSizeStops = normalizePointSizeStops(options.pointSizeByZoom);
+    this.defaultPointOpacity = normalizePointOpacity(options.pointOpacity);
+    this.defaultPointStrokeScale = normalizeStrokeScale(options.pointStrokeScale);
+    this.defaultPointInnerFillOpacity = normalizePointInnerFillOpacity(options.pointInnerFillOpacity);
     this.imageColorSettings = toNormalizedImageColorSettings(options.imageColorSettings);
     this.minZoomOverride = normalizeZoomOverride(options.minZoom);
     this.maxZoomOverride = normalizeZoomOverride(options.maxZoom);
@@ -188,7 +195,6 @@ export class WsiTileRenderer {
     this.gl = gl;
 
     this.tileProgram = initTileProgram(this.gl);
-    this.pointProgram = initPointProgram(this.gl);
     this.tileScheduler = new TileScheduler({
       authToken: this.authToken,
       maxConcurrency: options.tileScheduler?.maxConcurrency ?? 12,
@@ -278,26 +284,69 @@ export class WsiTileRenderer {
     });
   }
 
-  private getPointBufferRuntime(): PointBufferRuntime {
+  private createPointBufferRuntime(): PointBufferRuntime {
     return {
-      pointCount: this.pointCount,
-      usePointIndices: this.usePointIndices,
-      pointBuffersDirty: this.pointBuffersDirty,
-      lastPointData: this.lastPointData,
-      zeroFillModes: this.zeroFillModes,
-      lastPointPalette: this.lastPointPalette,
-      pointPaletteSize: this.pointPaletteSize,
+      pointCount: 0,
+      usePointIndices: false,
+      pointBuffersDirty: true,
+      lastPointData: null,
+      zeroFillModes: new Uint8Array(0),
+      lastPointPalette: null,
+      pointPaletteSize: 1,
     };
   }
 
-  private applyPointBufferRuntime(runtime: PointBufferRuntime): void {
-    this.pointCount = runtime.pointCount;
-    this.usePointIndices = runtime.usePointIndices;
-    this.pointBuffersDirty = runtime.pointBuffersDirty;
-    this.lastPointData = runtime.lastPointData;
-    this.zeroFillModes = runtime.zeroFillModes;
-    this.lastPointPalette = runtime.lastPointPalette;
-    this.pointPaletteSize = runtime.pointPaletteSize;
+  private createPointLayerState(id: string): ManagedPointLayerState {
+    return {
+      id,
+      program: initPointProgram(this.gl),
+      runtime: this.createPointBufferRuntime(),
+      pointSizeStops: clonePointSizeStops(this.defaultPointSizeStops),
+      pointOpacity: this.defaultPointOpacity,
+      pointLineDash: [...this.defaultPointLineDash] as [number, number],
+      pointStrokeScale: this.defaultPointStrokeScale,
+      pointInnerFillOpacity: this.defaultPointInnerFillOpacity,
+    };
+  }
+
+  private ensurePointLayer(layerId: string = DEFAULT_POINT_LAYER_ID): ManagedPointLayerState {
+    const nextId = String(layerId || DEFAULT_POINT_LAYER_ID);
+    const existing = this.pointLayers.get(nextId);
+    if (existing) return existing;
+
+    const created = this.createPointLayerState(nextId);
+    this.pointLayers.set(nextId, created);
+    return created;
+  }
+
+  private deletePointProgram(program: PointProgram): void {
+    if (this.contextLost || this.gl.isContextLost()) return;
+    this.gl.deleteBuffer(program.posBuffer);
+    this.gl.deleteBuffer(program.classBuffer);
+    this.gl.deleteBuffer(program.fillModeBuffer);
+    this.gl.deleteBuffer(program.indexBuffer);
+    this.gl.deleteTexture(program.paletteTexture);
+    this.gl.deleteVertexArray(program.vao);
+    this.gl.deleteProgram(program.program);
+  }
+
+  private getPointRenderLayers(): RenderPointLayer[] {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const out: RenderPointLayer[] = [];
+    for (const layer of this.pointLayers.values()) {
+      out.push({
+        pointProgram: layer.program,
+        pointCount: layer.runtime.pointCount,
+        usePointIndices: layer.runtime.usePointIndices,
+        pointPaletteSize: layer.runtime.pointPaletteSize,
+        pointLineDash: layer.pointLineDash,
+        pointOpacity: layer.pointOpacity,
+        pointStrokeScale: layer.pointStrokeScale,
+        pointInnerFillOpacity: layer.pointInnerFillOpacity,
+        pointSizePx: this.getPointSizeByZoom(layer.id) * dpr,
+      });
+    }
+    return out;
   }
 
   private applyViewStateAndRender(next: WsiViewState, cancelAnimation = true): void {
@@ -373,25 +422,39 @@ export class WsiTileRenderer {
     return this.viewAnimationState.animation !== null;
   }
 
-  setPointPalette(colors: Uint8Array | null | undefined): void {
-    const nextRuntime = setManagedPointPalette(this.getPointBufferRuntime(), this.gl, this.pointProgram, this.contextLost, colors);
-    this.applyPointBufferRuntime(nextRuntime);
+  registerPointLayer(layerId: string): void {
+    this.ensurePointLayer(layerId);
+  }
+
+  unregisterPointLayer(layerId: string): void {
+    const nextId = String(layerId || DEFAULT_POINT_LAYER_ID);
+    const layer = this.pointLayers.get(nextId);
+    if (!layer) return;
+    this.pointLayers.delete(nextId);
+    this.deletePointProgram(layer.program);
+    this.requestRender();
+  }
+
+  setPointPalette(colors: Uint8Array | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
+    layer.runtime = setManagedPointPalette(layer.runtime, this.gl, layer.program, this.contextLost, colors);
     if (!colors || colors.length === 0) {
       return;
     }
     this.requestRender();
   }
 
-  setPointLineDash(dashed: [number, number] | null | undefined): void {
+  setPointLineDash(dashed: [number, number] | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
     const next = normalizePointLineDash(dashed);
-    if (this.pointLineDash === next) return;
-    this.pointLineDash = next;
+    if (layer.pointLineDash[0] === next[0] && layer.pointLineDash[1] === next[1]) return;
+    layer.pointLineDash = next;
     this.requestRender();
   }
 
-  setPointData(points: WsiPointData | null | undefined): void {
-    const nextRuntime = setManagedPointData(this.getPointBufferRuntime(), this.gl, this.pointProgram, this.contextLost, points);
-    this.applyPointBufferRuntime(nextRuntime);
+  setPointData(points: WsiPointData | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
+    layer.runtime = setManagedPointData(layer.runtime, this.gl, layer.program, this.contextLost, points);
     this.requestRender();
   }
 
@@ -402,31 +465,35 @@ export class WsiTileRenderer {
     if (next) this.cancelDrag();
   }
 
-  setPointSizeByZoom(pointSizeByZoom: PointSizeByZoom | null | undefined): void {
+  setPointSizeByZoom(pointSizeByZoom: PointSizeByZoom | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
     const nextStops = normalizePointSizeStops(pointSizeByZoom);
-    if (arePointSizeStopsEqual(this.pointSizeStops, nextStops)) return;
-    this.pointSizeStops = nextStops;
+    if (arePointSizeStopsEqual(layer.pointSizeStops, nextStops)) return;
+    layer.pointSizeStops = nextStops;
     this.requestRender();
   }
 
-  setPointOpacity(opacity: number | null | undefined): void {
+  setPointOpacity(opacity: number | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
     const next = normalizePointOpacity(opacity);
-    if (this.pointOpacity === next) return;
-    this.pointOpacity = next;
+    if (layer.pointOpacity === next) return;
+    layer.pointOpacity = next;
     this.requestRender();
   }
 
-  setPointStrokeScale(scale: number | null | undefined): void {
+  setPointStrokeScale(scale: number | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
     const next = normalizeStrokeScale(scale);
-    if (this.pointStrokeScale === next) return;
-    this.pointStrokeScale = next;
+    if (layer.pointStrokeScale === next) return;
+    layer.pointStrokeScale = next;
     this.requestRender();
   }
 
-  setPointInnerFillOpacity(opacity: number | null | undefined): void {
+  setPointInnerFillOpacity(opacity: number | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
     const next = normalizePointInnerFillOpacity(opacity);
-    if (this.pointInnerFillOpacity === next) return;
-    this.pointInnerFillOpacity = next;
+    if (layer.pointInnerFillOpacity === next) return;
+    layer.pointInnerFillOpacity = next;
     this.requestRender();
   }
 
@@ -483,10 +550,12 @@ export class WsiTileRenderer {
     this.setViewState({ rotationDeg: 0 }, transition);
   }
 
-  getPointSizeByZoom(): number {
+  getPointSizeByZoom(layerId: string = DEFAULT_POINT_LAYER_ID): number {
     const zoom = Math.max(1e-6, this.camera.getViewState().zoom);
     const continuousZoom = this.source.maxTierZoom + Math.log2(zoom);
-    const size = resolvePointSizeByZoomStops(continuousZoom, this.pointSizeStops);
+    const layer = this.pointLayers.get(String(layerId || DEFAULT_POINT_LAYER_ID));
+    const stops = layer?.pointSizeStops ?? this.defaultPointSizeStops;
+    const size = resolvePointSizeByZoomStops(continuousZoom, stops);
     return clamp(size, MIN_POINT_SIZE_PX, MAX_POINT_SIZE_PX);
   }
 
@@ -595,16 +664,8 @@ export class WsiTileRenderer {
       cache: this.cache,
       frameSerial: this.frameSerial,
       tileProgram: this.tileProgram,
-      pointProgram: this.pointProgram,
       imageColorSettings: this.imageColorSettings,
-      pointCount: this.pointCount,
-      usePointIndices: this.usePointIndices,
-      pointPaletteSize: this.pointPaletteSize,
-      pointOpacity: this.pointOpacity,
-      pointLineDash: this.pointLineDash,
-      pointStrokeScale: this.pointStrokeScale,
-      pointInnerFillOpacity: this.pointInnerFillOpacity,
-      pointSizePx: this.getPointSizeByZoom() * Math.max(1, window.devicePixelRatio || 1),
+      pointLayers: this.getPointRenderLayers(),
       tileScheduler: this.tileScheduler,
       getVisibleTiles: () => getManagedVisibleTiles(this.camera, this.source),
       getVisibleTilesForTier: tier => getManagedVisibleTilesForTier(this.camera, this.source, tier),
@@ -661,7 +722,12 @@ export class WsiTileRenderer {
     if (!result.handled) return;
     this.frame = result.frame;
     this.contextLost = true;
-    this.pointBuffersDirty = true;
+    for (const layer of this.pointLayers.values()) {
+      layer.runtime = {
+        ...layer.runtime,
+        pointBuffersDirty: true,
+      };
+    }
   }
 
   private onWebGlContextRestored(_event: Event): void {
@@ -670,16 +736,18 @@ export class WsiTileRenderer {
     this.cache.clear();
 
     this.tileProgram = initTileProgram(this.gl);
-    this.pointProgram = initPointProgram(this.gl);
-    this.pointBuffersDirty = true;
-
-    if (this.lastPointPalette && this.lastPointPalette.length > 0) {
-      this.setPointPalette(this.lastPointPalette);
-    }
-    if (this.lastPointData) {
-      this.setPointData(this.lastPointData);
-    } else {
-      this.pointCount = 0;
+    for (const layer of this.pointLayers.values()) {
+      layer.program = initPointProgram(this.gl);
+      layer.runtime = {
+        ...layer.runtime,
+        pointBuffersDirty: true,
+      };
+      if (layer.runtime.lastPointPalette && layer.runtime.lastPointPalette.length > 0) {
+        layer.runtime = setManagedPointPalette(layer.runtime, this.gl, layer.program, this.contextLost, layer.runtime.lastPointPalette);
+      }
+      if (layer.runtime.lastPointData) {
+        layer.runtime = setManagedPointData(layer.runtime, this.gl, layer.program, this.contextLost, layer.runtime.lastPointData);
+      }
     }
 
     this.resize();
@@ -699,7 +767,7 @@ export class WsiTileRenderer {
       gl: this.gl,
       cache: this.cache,
       tileProgram: this.tileProgram,
-      pointProgram: this.pointProgram,
+      pointPrograms: Array.from(this.pointLayers.values(), layer => layer.program),
     });
     if (!result.didDestroy) return;
     this.destroyed = true;
