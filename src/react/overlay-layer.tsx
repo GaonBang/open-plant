@@ -12,7 +12,7 @@ export interface OverlayLayerProps {
 const OVERLAY_DRAW_ID = "__overlay_layer__";
 
 export function OverlayLayer({ shapes }: OverlayLayerProps): React.ReactElement | null {
-  const { rendererRef, source, registerDrawCallback, unregisterDrawCallback, requestOverlayRedraw } = useViewerContext();
+  const { rendererRef, rendererSerial, source, registerDrawCallback, unregisterDrawCallback, requestOverlayRedraw } = useViewerContext();
 
   const worldToScreenPoints = useCallback(
     (points: DrawCoordinate[]): DrawCoordinate[] => {
@@ -57,7 +57,7 @@ export function OverlayLayer({ shapes }: OverlayLayerProps): React.ReactElement 
     return () => unregisterDrawCallback(OVERLAY_DRAW_ID);
   }, [registerDrawCallback, unregisterDrawCallback]);
 
-  useEffect(() => { requestOverlayRedraw(); }, [shapes, requestOverlayRedraw]);
+  useEffect(() => { requestOverlayRedraw(); }, [rendererSerial, shapes, source, requestOverlayRedraw]);
 
   return null;
 }

@@ -583,6 +583,7 @@ export default function App() {
               }}
               panExtent={{ x: 1, y: 0.1 }}
               className="viewer-canvas"
+              initialRotate={-90}
             >
               <PointLayer
                 data={pointData.pointPayload}
@@ -624,6 +625,7 @@ export default function App() {
                 onActiveChange={handleActiveRegionChange}
                 onHover={handleRegionHover}
                 onClick={handleRegionClick}
+                labelAnchor="top-left"
               />
               <DrawingLayer tool={draw.drawTool} stampOptions={draw.stampOptions} brushOptions={draw.brushOptions} onComplete={draw.handleDrawComplete} onPatchComplete={draw.handlePatchComplete} />
               <OverlayLayer shapes={overlayShapes} />

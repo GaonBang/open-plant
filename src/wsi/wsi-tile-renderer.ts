@@ -550,6 +550,10 @@ export class WsiTileRenderer {
     return this.camera.getViewCorners();
   }
 
+  getInitialRotationDeg(): number {
+    return this.initialRotationDeg;
+  }
+
   getViewBounds(): Bounds {
     return getManagedViewBounds(this.camera);
   }

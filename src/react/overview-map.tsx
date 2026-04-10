@@ -1,10 +1,29 @@
 import { type CSSProperties, type MutableRefObject, type ReactNode, type PointerEvent as ReactPointerEvent, type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
-import { toTileUrl } from "../wsi/image-info";
 import { observeDevicePixelRatioChanges } from "../wsi/device-pixel-ratio";
+import { toTileUrl } from "../wsi/image-info";
 import type { WsiImageSource, WsiViewState } from "../wsi/types";
 import { clamp } from "../wsi/utils";
 
 type Bounds = [number, number, number, number];
+
+interface RotatedImageMetrics {
+  cos: number;
+  sin: number;
+  minX: number;
+  minY: number;
+  width: number;
+  height: number;
+  translateX: number;
+  translateY: number;
+}
+
+interface OverviewImageLayout {
+  contentX: number;
+  contentY: number;
+  contentWidth: number;
+  contentHeight: number;
+  metrics: RotatedImageMetrics;
+}
 
 function shouldAttachAuthHeaderToOverviewTile(url: string, authToken: string): boolean {
   if (!authToken) return false;
@@ -19,6 +38,7 @@ export interface OverviewMapProjector {
   setViewCenter?: (worldX: number, worldY: number) => void;
   getViewBounds?: () => number[];
   getViewCorners?: () => Array<[number, number]>;
+  getInitialRotationDeg?: () => number;
 }
 
 export type OverviewMapPosition = "bottom-right" | "bottom-left" | "top-right" | "top-left";
@@ -189,6 +209,104 @@ function toPositiveNumber(value: number | undefined, fallback: number, min = 1):
   return Math.max(min, value);
 }
 
+function toFiniteRotation(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function toRadians(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function getRotatedImageMetrics(imageWidth: number, imageHeight: number, rotationDeg: number): RotatedImageMetrics {
+  const safeRotation = toFiniteRotation(rotationDeg);
+  const rad = toRadians(safeRotation);
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const centerX = imageWidth * 0.5;
+  const centerY = imageHeight * 0.5;
+  const translateX = -cos * centerX - sin * centerY;
+  const translateY = sin * centerX - cos * centerY;
+
+  const corners: Array<[number, number]> = [
+    [0, 0],
+    [imageWidth, 0],
+    [imageWidth, imageHeight],
+    [0, imageHeight],
+  ].map(([x, y]) => [cos * x + sin * y + translateX, -sin * x + cos * y + translateY]);
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const [x, y] of corners) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+
+  return {
+    cos,
+    sin,
+    minX,
+    minY,
+    width: Math.max(1e-6, maxX - minX),
+    height: Math.max(1e-6, maxY - minY),
+    translateX,
+    translateY,
+  };
+}
+
+function getOverviewImageLayout(imageWidth: number, imageHeight: number, boxWidth: number, boxHeight: number, rotationDeg: number): OverviewImageLayout {
+  const metrics = getRotatedImageMetrics(imageWidth, imageHeight, rotationDeg);
+  const imageAspect = metrics.width / metrics.height;
+  const boxAspect = boxWidth / boxHeight;
+
+  let contentWidth: number;
+  let contentHeight: number;
+  if (imageAspect > boxAspect) {
+    contentWidth = boxWidth;
+    contentHeight = boxWidth / imageAspect;
+  } else {
+    contentHeight = boxHeight;
+    contentWidth = boxHeight * imageAspect;
+  }
+
+  return {
+    contentX: (boxWidth - contentWidth) / 2,
+    contentY: (boxHeight - contentHeight) / 2,
+    contentWidth,
+    contentHeight,
+    metrics,
+  };
+}
+
+function worldToOverviewPoint(worldX: number, worldY: number, layout: OverviewImageLayout): [number, number] {
+  const { contentX, contentY, contentWidth, contentHeight, metrics } = layout;
+  const rotatedX = metrics.cos * worldX + metrics.sin * worldY + metrics.translateX - metrics.minX;
+  const rotatedY = -metrics.sin * worldX + metrics.cos * worldY + metrics.translateY - metrics.minY;
+  return [contentX + (rotatedX / metrics.width) * contentWidth, contentY + (rotatedY / metrics.height) * contentHeight];
+}
+
+function overviewPointToWorld(pointX: number, pointY: number, layout: OverviewImageLayout, imageWidth: number, imageHeight: number): [number, number] {
+  const { metrics } = layout;
+  const rotatedX = pointX + metrics.minX - metrics.translateX;
+  const rotatedY = pointY + metrics.minY - metrics.translateY;
+  const worldX = rotatedX * metrics.cos - rotatedY * metrics.sin;
+  const worldY = rotatedX * metrics.sin + rotatedY * metrics.cos;
+  return [clamp(worldX, 0, imageWidth), clamp(worldY, 0, imageHeight)];
+}
+
+function boundsToCorners(bounds: Bounds): Array<[number, number]> {
+  return [
+    [bounds[0], bounds[1]],
+    [bounds[2], bounds[1]],
+    [bounds[2], bounds[3]],
+    [bounds[0], bounds[3]],
+  ];
+}
+
 function isFiniteBounds(bounds: number[] | null | undefined): bounds is Bounds {
   return Array.isArray(bounds) && bounds.length === 4 && Number.isFinite(bounds[0]) && Number.isFinite(bounds[1]) && Number.isFinite(bounds[2]) && Number.isFinite(bounds[3]);
 }
@@ -227,29 +345,6 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
   const width = toPositiveNumber(options?.width, DEFAULT_OVERVIEW_MAP_OPTIONS.width, 64);
   const height = toPositiveNumber(options?.height, DEFAULT_OVERVIEW_MAP_OPTIONS.height, 48);
 
-  const contentRect = useMemo(() => {
-    const imgW = Math.max(1, source.width);
-    const imgH = Math.max(1, source.height);
-    const imageAspect = imgW / imgH;
-    const boxAspect = width / height;
-
-    let cw: number;
-    let ch: number;
-    if (imageAspect > boxAspect) {
-      cw = width;
-      ch = width / imageAspect;
-    } else {
-      ch = height;
-      cw = height * imageAspect;
-    }
-
-    return {
-      x: (width - cw) / 2,
-      y: (height - ch) / 2,
-      w: cw,
-      h: ch,
-    };
-  }, [source.width, source.height, width, height]);
   const margin = toPositiveNumber(options?.margin, DEFAULT_OVERVIEW_MAP_OPTIONS.margin, 0);
   const borderRadius = toPositiveNumber(options?.borderRadius, DEFAULT_OVERVIEW_MAP_OPTIONS.borderRadius, 0);
   const borderWidth = toPositiveNumber(options?.borderWidth, DEFAULT_OVERVIEW_MAP_OPTIONS.borderWidth, 0);
@@ -314,18 +409,28 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, cssW, cssH);
 
-    const { x: cx, y: cy, w: cw, h: ch } = contentRect;
+    const projector = projectorRef.current;
+    const initialRotationDeg = toFiniteRotation(projector?.getInitialRotationDeg?.());
+    const layout = getOverviewImageLayout(source.width, source.height, cssW, cssH, initialRotationDeg);
+    const { contentX: cx, contentY: cy, contentWidth: cw, contentHeight: ch, metrics } = layout;
 
     const preview = thumbnailRef.current;
     if (preview) {
-      ctx.drawImage(preview, cx, cy, cw, ch);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(cx, cy, cw, ch);
+      ctx.clip();
+      ctx.translate(cx, cy);
+      ctx.scale(cw / metrics.width, ch / metrics.height);
+      ctx.transform(metrics.cos, -metrics.sin, metrics.sin, metrics.cos, metrics.translateX - metrics.minX, metrics.translateY - metrics.minY);
+      ctx.drawImage(preview, 0, 0, source.width, source.height);
+      ctx.restore();
     }
 
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = borderWidth;
     ctx.strokeRect(borderWidth * 0.5, borderWidth * 0.5, cssW - borderWidth, cssH - borderWidth);
 
-    const projector = projectorRef.current;
     const bounds = projector?.getViewBounds?.();
     const corners = projector?.getViewCorners?.();
     const safeCorners =
@@ -337,13 +442,10 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
       lastBoundsRef.current = bounds;
     }
 
-    const sx = cw / Math.max(1, source.width);
-    const sy = ch / Math.max(1, source.height);
-
     const isDash = viewportBorderStyle === "dash";
 
     if (safeCorners) {
-      const screenCorners: Array<[number, number]> = safeCorners.map(point => [cx + point[0] * sx, cy + point[1] * sy]);
+      const screenCorners: Array<[number, number]> = safeCorners.map(point => worldToOverviewPoint(point[0], point[1], layout));
       const clippedCorners = clipPolygonToRect(screenCorners, cx, cy, cx + cw, cy + ch);
 
       if (clippedCorners.length >= 3) {
@@ -370,30 +472,28 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
       return;
     }
 
-    const left = clamp(cx + safeBounds[0] * sx, cx, cx + cw);
-    const top = clamp(cy + safeBounds[1] * sy, cy, cy + ch);
-    const right = clamp(cx + safeBounds[2] * sx, cx, cx + cw);
-    const bottom = clamp(cy + safeBounds[3] * sy, cy, cy + ch);
-    const rectW = Math.max(1, right - left);
-    const rectH = Math.max(1, bottom - top);
+    const fallbackCorners = boundsToCorners(safeBounds).map(point => worldToOverviewPoint(point[0], point[1], layout));
+    const clippedCorners = clipPolygonToRect(fallbackCorners, cx, cy, cx + cw, cy + ch);
+    if (clippedCorners.length < 3) {
+      return;
+    }
 
+    ctx.beginPath();
+    for (let i = 0; i < clippedCorners.length; i += 1) {
+      if (i === 0) ctx.moveTo(clippedCorners[i][0], clippedCorners[i][1]);
+      else ctx.lineTo(clippedCorners[i][0], clippedCorners[i][1]);
+    }
+    ctx.closePath();
     ctx.fillStyle = viewportFillColor;
-    ctx.fillRect(left, top, rectW, rectH);
-
+    ctx.fill();
     ctx.strokeStyle = viewportBorderColor;
     ctx.lineWidth = 2.25;
     if (isDash) {
-      const rectCorners: Array<[number, number]> = [
-        [left + 0.5, top + 0.5],
-        [left + 0.5 + Math.max(1, rectW - 1), top + 0.5],
-        [left + 0.5 + Math.max(1, rectW - 1), top + 0.5 + Math.max(1, rectH - 1)],
-        [left + 0.5, top + 0.5 + Math.max(1, rectH - 1)],
-      ];
-      strokeSymmetricDashedPolygon(ctx, rectCorners, 4, 3);
+      strokeSymmetricDashedPolygon(ctx, clippedCorners, 4, 3);
     } else {
-      ctx.strokeRect(left + 0.5, top + 0.5, Math.max(1, rectW - 1), Math.max(1, rectH - 1));
+      ctx.stroke();
     }
-  }, [width, height, contentRect, backgroundColor, borderColor, borderWidth, projectorRef, source.width, source.height, viewportFillColor, viewportBorderColor, viewportBorderStyle]);
+  }, [width, height, backgroundColor, borderColor, borderWidth, projectorRef, source.width, source.height, viewportFillColor, viewportBorderColor, viewportBorderStyle]);
 
   const requestDraw = useCallback(() => {
     if (drawPendingRef.current) return;
@@ -413,18 +513,21 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
       const rect = canvas.getBoundingClientRect();
       if (!rect.width || !rect.height) return null;
 
+      const projector = projectorRef.current;
+      const initialRotationDeg = toFiniteRotation(projector?.getInitialRotationDeg?.());
+      const layout = getOverviewImageLayout(source.width, source.height, width, height, initialRotationDeg);
       const scaleX = rect.width / width;
       const scaleY = rect.height / height;
-      const cxPx = contentRect.x * scaleX;
-      const cyPx = contentRect.y * scaleY;
-      const cwPx = contentRect.w * scaleX;
-      const chPx = contentRect.h * scaleY;
+      const cxPx = layout.contentX * scaleX;
+      const cyPx = layout.contentY * scaleY;
+      const cwPx = layout.contentWidth * scaleX;
+      const chPx = layout.contentHeight * scaleY;
 
       const nx = clamp((clientX - rect.left - cxPx) / cwPx, 0, 1);
       const ny = clamp((clientY - rect.top - cyPx) / chPx, 0, 1);
-      return [nx * source.width, ny * source.height];
+      return overviewPointToWorld(nx * layout.metrics.width, ny * layout.metrics.height, layout, source.width, source.height);
     },
-    [source.width, source.height, width, height, contentRect]
+    [projectorRef, source.width, source.height, width, height]
   );
 
   const recenterTo = useCallback(
@@ -527,9 +630,10 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
       return undefined;
     }
 
+    const previewScale = Math.min(width / Math.max(1, source.width), height / Math.max(1, source.height));
     const preview = document.createElement("canvas");
-    preview.width = Math.max(1, Math.round(contentRect.w));
-    preview.height = Math.max(1, Math.round(contentRect.h));
+    preview.width = Math.max(1, Math.round(source.width * previewScale));
+    preview.height = Math.max(1, Math.round(source.height * previewScale));
     const ctx = preview.getContext("2d");
     if (!ctx) {
       return undefined;
@@ -601,11 +705,25 @@ export function OverviewMap({ source, projectorRef, authToken = "", options, inv
     return () => {
       cancelled = true;
     };
-  }, [source, authToken, contentRect, backgroundColor, showThumbnail, maxThumbnailTiles, requestDraw]);
+  }, [source, authToken, backgroundColor, width, height, showThumbnail, maxThumbnailTiles, requestDraw]);
 
   useEffect(() => {
     requestDraw();
   }, [requestDraw]);
+
+  useEffect(() => {
+    if (projectorRef.current) return undefined;
+    let rafId = 0;
+    const tick = () => {
+      if (projectorRef.current) {
+        requestDraw();
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [projectorRef, requestDraw]);
 
   useEffect(() => observeDevicePixelRatioChanges(() => requestDraw()), [requestDraw]);
 
