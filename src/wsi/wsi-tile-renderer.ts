@@ -1,10 +1,11 @@
 import { OrthoCamera } from "../core/ortho-camera";
+import { observeDevicePixelRatioChanges } from "./device-pixel-ratio";
 import { TileScheduler } from "./tile-scheduler";
 import type { WsiImageColorSettings, WsiImageSource, WsiPointData, WsiRenderStats, WsiViewState } from "./types";
 import { clamp, isSameViewState, nowMs } from "./utils";
 import { addRendererCanvasEventListeners, type RendererCanvasHandlers, removeRendererCanvasEventListeners, resizeCanvasViewport } from "./wsi-canvas-lifecycle";
-import { observeDevicePixelRatioChanges } from "./device-pixel-ratio";
 import { cancelDrag as cancelInputDrag, createRendererInputHandlers } from "./wsi-input-handlers";
+import { applyWheelSnapDelta, applyWheelZoomDelta } from "./wsi-interaction";
 import { destroyRenderer, handleContextLost } from "./wsi-lifecycle-ops";
 import {
   arePointSizeStopsEqual,
@@ -27,8 +28,8 @@ import {
 } from "./wsi-normalize";
 import type { PointBufferRuntime } from "./wsi-point-data";
 import { setPointData as setManagedPointData, setPointPalette as setManagedPointPalette } from "./wsi-point-data";
-import { renderFrame } from "./wsi-render-pass";
 import type { RenderPointLayer } from "./wsi-render-pass";
+import { renderFrame } from "./wsi-render-pass";
 import type {
   Bounds,
   CachedTile,
@@ -167,10 +168,7 @@ export class WsiTileRenderer {
     this.onContextRestored = options.onContextRestored;
     this.authToken = options.authToken ?? "";
     this.maxCacheTiles = Math.max(32, Math.floor(options.maxCacheTiles ?? 320));
-    this.initialRotationDeg =
-      typeof options.initialRotationDeg === "number" && Number.isFinite(options.initialRotationDeg)
-        ? options.initialRotationDeg
-        : 0;
+    this.initialRotationDeg = typeof options.initialRotationDeg === "number" && Number.isFinite(options.initialRotationDeg) ? options.initialRotationDeg : 0;
     this.ctrlDragRotate = options.ctrlDragRotate ?? true;
     this.rotationDragSensitivityDegPerPixel =
       typeof options.rotationDragSensitivityDegPerPixel === "number" && Number.isFinite(options.rotationDragSensitivityDegPerPixel)
@@ -587,6 +585,14 @@ export class WsiTileRenderer {
     const target = computeZoomByTarget(this.camera, this.minZoom, this.maxZoom, factor, screenX, screenY);
     if (!target) return;
     this.setViewState(target, transition);
+  }
+
+  handleWheelZoom(deltaY: number, screenX: number, screenY: number): void {
+    if (this.zoomSnaps.length > 0) {
+      applyWheelSnapDelta(deltaY, screenX, screenY, this.zoomSnapState, (direction, x, y) => this.handleSnapZoom(direction, x, y));
+      return;
+    }
+    applyWheelZoomDelta(deltaY, screenX, screenY, (factor, x, y) => this.zoomBy(factor, x, y));
   }
 
   zoomTo(zoom: number, screenX: number, screenY: number, transition?: WsiViewTransitionOptions): void {

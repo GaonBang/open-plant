@@ -144,6 +144,7 @@ export interface DrawProjector {
   getViewState?: () => { zoom: number; rotationDeg?: number };
   getZoomRange?: () => { minZoom: number; maxZoom: number };
   getRegionLabelAutoLiftCapZoom?: () => number;
+  handleWheelZoom?: (deltaY: number, screenX: number, screenY: number) => void;
   zoomBy?: (factor: number, screenX: number, screenY: number) => void;
 }
 

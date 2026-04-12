@@ -136,8 +136,7 @@ export function handleWheel(options: WheelOptions): void {
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
-  const factor = event.deltaY < 0 ? 1.12 : 0.89;
-  onZoomBy(factor, x, y);
+  applyWheelZoomDelta(event.deltaY, x, y, onZoomBy);
 }
 
 interface WheelSnapOptions {
@@ -149,11 +148,19 @@ interface WheelSnapOptions {
 
 const SNAP_DELTA_THRESHOLD = 4;
 
-export function handleWheelSnap(options: WheelSnapOptions): void {
-  const { event, canvas, snapState, onSnapZoom } = options;
-  event.preventDefault();
+export function applyWheelZoomDelta(deltaY: number, x: number, y: number, onZoomBy: (factor: number, x: number, y: number) => void): void {
+  const factor = deltaY < 0 ? 1.12 : 0.89;
+  onZoomBy(factor, x, y);
+}
 
-  const inputDirection: "in" | "out" | null = event.deltaY < 0 ? "in" : event.deltaY > 0 ? "out" : null;
+export function applyWheelSnapDelta(
+  deltaY: number,
+  x: number,
+  y: number,
+  snapState: ZoomSnapState,
+  onSnapZoom: (direction: "in" | "out", x: number, y: number) => boolean
+): void {
+  const inputDirection: "in" | "out" | null = deltaY < 0 ? "in" : deltaY > 0 ? "out" : null;
   if (inputDirection && snapState.blockedDirection) {
     if (inputDirection !== snapState.blockedDirection) {
       snapState.blockedDirection = null;
@@ -163,16 +170,13 @@ export function handleWheelSnap(options: WheelSnapOptions): void {
     }
   }
 
-  if (snapState.accumulatedDelta !== 0 && event.deltaY !== 0 && Math.sign(snapState.accumulatedDelta) !== Math.sign(event.deltaY)) {
+  if (snapState.accumulatedDelta !== 0 && deltaY !== 0 && Math.sign(snapState.accumulatedDelta) !== Math.sign(deltaY)) {
     snapState.accumulatedDelta = 0;
   }
-  snapState.accumulatedDelta += event.deltaY;
+  snapState.accumulatedDelta += deltaY;
 
   if (Math.abs(snapState.accumulatedDelta) < SNAP_DELTA_THRESHOLD) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
   const direction: "in" | "out" = snapState.accumulatedDelta > 0 ? "out" : "in";
 
   snapState.accumulatedDelta = 0;
@@ -182,6 +186,15 @@ export function handleWheelSnap(options: WheelSnapOptions): void {
   }
 
   snapState.blockedDirection = null;
+}
+
+export function handleWheelSnap(options: WheelSnapOptions): void {
+  const { event, canvas, snapState, onSnapZoom } = options;
+  event.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  applyWheelSnapDelta(event.deltaY, x, y, snapState, onSnapZoom);
 }
 
 export function handleDoubleClick(options: DoubleClickOptions): void {

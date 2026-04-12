@@ -12,7 +12,9 @@ export interface DevicePixelRatioChangeEvent {
 
 export function observeDevicePixelRatioChanges(onChange: (event: DevicePixelRatioChangeEvent) => void): () => void {
   if (typeof window === "undefined") {
-    return () => {};
+    return () => {
+      // noop
+    };
   }
 
   let active = true;

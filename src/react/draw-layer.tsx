@@ -961,13 +961,19 @@ export function DrawLayer({
         if (!active) return;
         const canvas = canvasRef.current;
         const projector = projectorRef.current;
-        if (!canvas || typeof projector?.zoomBy !== "function") return;
+        const hasWheelZoom = typeof projector?.handleWheelZoom === "function";
+        const hasLegacyZoom = typeof projector?.zoomBy === "function";
+        if (!canvas || (!hasWheelZoom && !hasLegacyZoom)) return;
         event.preventDefault();
         event.stopPropagation();
         const rect = canvas.getBoundingClientRect();
         const screenX = event.clientX - rect.left;
         const screenY = event.clientY - rect.top;
-        projector.zoomBy(event.deltaY < 0 ? WHEEL_ZOOM_IN_FACTOR : WHEEL_ZOOM_OUT_FACTOR, screenX, screenY);
+        if (hasWheelZoom) {
+          projector.handleWheelZoom?.(event.deltaY, screenX, screenY);
+        } else {
+          projector.zoomBy?.(event.deltaY < 0 ? WHEEL_ZOOM_IN_FACTOR : WHEEL_ZOOM_OUT_FACTOR, screenX, screenY);
+        }
         requestDraw();
       }}
     />
