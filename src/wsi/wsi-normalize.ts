@@ -1,6 +1,14 @@
 import type { WsiImageColorSettings } from "./types";
-import { clamp } from "./utils";
-import type { NormalizedImageColorSettings, PointSizeByMagnification, PointSizeByZoom, PointSizeMagnificationStop, PointSizeStop } from "./wsi-renderer-types";
+import { clamp, parseHexColorToRgba } from "./utils";
+import type {
+  NormalizedImageColorSettings,
+  PointSizeByMagnification,
+  PointSizeByZoom,
+  PointSizeMagnificationStop,
+  PointSizeStop,
+  PointWeightByMagnification,
+  PointWeightMagnificationStop,
+} from "./wsi-renderer-types";
 
 export const DEFAULT_ROTATION_DRAG_SENSITIVITY = 0.35;
 export const MIN_POINT_SIZE_PX = 0.5;
@@ -30,6 +38,7 @@ const MAX_POINT_INNER_FILL_OPACITY = 1;
 const MIN_IMAGE_COLOR_INPUT = -100;
 const MAX_IMAGE_COLOR_INPUT = 100;
 const MAX_VIEW_TRANSITION_DURATION_MS = 2000;
+export const DEFAULT_POINT_INNER_FILL_COLOR: readonly [number, number, number] = [255, 255, 255];
 
 export function toRadians(deg: number): number {
   return (deg * Math.PI) / 180;
@@ -47,6 +56,13 @@ export function clonePointSizeStops(stops: readonly PointSizeStop[]): PointSizeS
 export function clonePointSizeMagnificationStops(stops: readonly PointSizeMagnificationStop[] | null | undefined): PointSizeMagnificationStop[] | null {
   if (!stops || stops.length === 0) return null;
   return stops.map(stop => ({ magnification: stop.magnification, size: stop.size }));
+}
+
+export function clonePointWeightMagnificationStops(
+  stops: readonly PointWeightMagnificationStop[] | null | undefined
+): PointWeightMagnificationStop[] | null {
+  if (!stops || stops.length === 0) return null;
+  return stops.map(stop => ({ magnification: stop.magnification, weight: stop.weight }));
 }
 
 export function normalizePointSizeStops(pointSizeByZoom: PointSizeByZoom | null | undefined): PointSizeStop[] {
@@ -89,6 +105,28 @@ export function normalizePointSizeMagnificationStops(pointSizeByMagnification: P
     .map(([magnification, size]) => ({ magnification, size }));
 }
 
+export function normalizePointWeightMagnificationStops(
+  pointWeightByMagnification: PointWeightByMagnification | null | undefined
+): PointWeightMagnificationStop[] | null {
+  if (!pointWeightByMagnification) return null;
+
+  const parsed = new Map<number, number>();
+  for (const [magnificationKey, rawWeight] of Object.entries(pointWeightByMagnification)) {
+    const magnification = Number(magnificationKey);
+    const weight = normalizeStrokeScale(rawWeight);
+    if (!Number.isFinite(magnification) || magnification <= 0) continue;
+    parsed.set(magnification, weight);
+  }
+
+  if (parsed.size === 0) {
+    return null;
+  }
+
+  return Array.from(parsed.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([magnification, weight]) => ({ magnification, weight }));
+}
+
 export function arePointSizeStopsEqual(a: readonly PointSizeStop[], b: readonly PointSizeStop[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
@@ -109,6 +147,21 @@ export function arePointSizeMagnificationStopsEqual(
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
     if (a[i].magnification !== b[i].magnification || a[i].size !== b[i].size) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function arePointWeightMagnificationStopsEqual(
+  a: readonly PointWeightMagnificationStop[] | null | undefined,
+  b: readonly PointWeightMagnificationStop[] | null | undefined
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i].magnification !== b[i].magnification || a[i].weight !== b[i].weight) {
       return false;
     }
   }
@@ -159,6 +212,28 @@ export function resolvePointSizeByMagnificationStops(magnification: number, stop
   return last.size + (magnification - last.magnification) * slope;
 }
 
+export function resolvePointWeightByMagnificationStops(magnification: number, stops: readonly PointWeightMagnificationStop[]): number {
+  if (!Number.isFinite(magnification)) return stops[0]?.weight ?? 1.0;
+  if (stops.length === 0) return 1.0;
+  if (stops.length === 1) return stops[0].weight;
+  if (magnification <= stops[0].magnification) return stops[0].weight;
+
+  for (let i = 1; i < stops.length; i += 1) {
+    const prev = stops[i - 1];
+    const next = stops[i];
+    if (magnification > next.magnification) continue;
+    const span = Math.max(1e-6, next.magnification - prev.magnification);
+    const t = clamp((magnification - prev.magnification) / span, 0, 1);
+    return prev.weight + (next.weight - prev.weight) * t;
+  }
+
+  const last = stops[stops.length - 1];
+  const prev = stops[stops.length - 2];
+  const span = Math.max(1e-6, last.magnification - prev.magnification);
+  const slope = (last.weight - prev.weight) / span;
+  return last.weight + (magnification - last.magnification) * slope;
+}
+
 export function normalizeStrokeScale(value: number | null | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 1.0;
   return clamp(value, MIN_STROKE_SCALE, MAX_STROKE_SCALE);
@@ -177,6 +252,11 @@ export function normalizePointLineDash(dashed: [number, number] | null | undefin
 export function normalizePointInnerFillOpacity(value: number | null | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return clamp(value, MIN_POINT_INNER_FILL_OPACITY, MAX_POINT_INNER_FILL_OPACITY);
+}
+
+export function normalizePointInnerFillColor(value: string | null | undefined): [number, number, number] {
+  const rgba = parseHexColorToRgba(value, [...DEFAULT_POINT_INNER_FILL_COLOR, 255]);
+  return [rgba[0], rgba[1], rgba[2]];
 }
 
 function normalizeImageColorInput(value: number | null | undefined): number {

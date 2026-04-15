@@ -105,6 +105,23 @@ export function hexToRgba(
 	return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 255];
 }
 
+export function parseHexColorToRgba(
+	value: string | null | undefined,
+	fallback: [number, number, number, number],
+): [number, number, number, number] {
+	const input = String(value ?? "").trim();
+	if (!input) return [...fallback];
+
+	const hexMatch = input.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+	if (hexMatch) {
+		const hex = hexMatch[1].length === 3 ? hexMatch[1].split("").map(ch => ch + ch).join("") : hexMatch[1];
+		const n = Number.parseInt(hex, 16);
+		return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 255];
+	}
+
+	return [...fallback];
+}
+
 function resolvePaletteClassKey(
 	item:
 		| { classId?: string | null; className?: string | null }

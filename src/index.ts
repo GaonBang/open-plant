@@ -156,6 +156,7 @@ export { parseWkt } from "./wsi/wkt";
 export type {
   PointSizeByMagnification,
   PointSizeByZoom,
+  PointWeightByMagnification,
   WsiTileErrorEvent,
   WsiTileRendererOptions,
   WsiTileSchedulerConfig,

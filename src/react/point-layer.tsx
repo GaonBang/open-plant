@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { PointClipMode } from "../wsi/point-clip-worker-client";
 import type { WsiPointData, WsiRegion } from "../wsi/types";
-import type { PointSizeByMagnification, PointSizeByZoom } from "../wsi/wsi-tile-renderer";
+import type { PointSizeByMagnification, PointSizeByZoom, PointWeightByMagnification } from "../wsi/wsi-tile-renderer";
 import type { DrawCoordinate } from "./draw-layer-types";
 import { usePointClipping } from "./use-point-clipping";
 import { usePointHitTest } from "./use-point-hit-test";
@@ -13,9 +13,11 @@ export interface PointLayerProps {
   palette?: Uint8Array | null;
   sizeByZoom?: PointSizeByZoom;
   sizeByMagnification?: PointSizeByMagnification;
+  weightByMagnification?: PointWeightByMagnification;
   opacity?: number;
   strokeScale?: number;
   innerFillOpacity?: number;
+  innerFillColor?: string;
   clipEnabled?: boolean;
   clipToRegions?: WsiRegion[];
   clipMode?: PointClipMode;
@@ -32,7 +34,24 @@ export interface PointQueryHandle {
 let nextPointLayerId = 0;
 
 export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function PointLayer(
-  { data = null, palette = null, sizeByZoom, sizeByMagnification, opacity, strokeScale, innerFillOpacity, clipEnabled = false, clipToRegions, clipMode = "worker", onClipStats, onHover, onClick, dashed },
+  {
+    data = null,
+    palette = null,
+    sizeByZoom,
+    sizeByMagnification,
+    weightByMagnification,
+    opacity,
+    strokeScale,
+    innerFillOpacity,
+    innerFillColor,
+    clipEnabled = false,
+    clipToRegions,
+    clipMode = "worker",
+    onClipStats,
+    onHover,
+    onClick,
+    dashed,
+  },
   ref
 ) {
   const { rendererRef, rendererSerial, source } = useViewerContext();
@@ -83,6 +102,12 @@ export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function
 
   useEffect(() => {
     const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setPointWeightByMagnification(weightByMagnification, layerIdRef.current);
+  }, [rendererSerial, weightByMagnification, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
     if (!renderer || opacity === undefined) return;
     renderer.setPointOpacity(opacity, layerIdRef.current);
   }, [rendererSerial, opacity, rendererRef]);
@@ -98,6 +123,12 @@ export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function
     if (!renderer || innerFillOpacity === undefined) return;
     renderer.setPointInnerFillOpacity(innerFillOpacity, layerIdRef.current);
   }, [rendererSerial, innerFillOpacity, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setPointInnerFillColor(innerFillColor, layerIdRef.current);
+  }, [rendererSerial, innerFillColor, rendererRef]);
 
   useEffect(() => {
     const renderer = rendererRef.current;

@@ -10,24 +10,30 @@ import { destroyRenderer, handleContextLost } from "./wsi-lifecycle-ops";
 import {
   arePointSizeMagnificationStopsEqual,
   arePointSizeStopsEqual,
+  arePointWeightMagnificationStopsEqual,
   clonePointSizeMagnificationStops,
   clonePointSizeStops,
+  clonePointWeightMagnificationStops,
   DEFAULT_POINT_SIZE_STOPS,
+  DEFAULT_POINT_INNER_FILL_COLOR,
   DEFAULT_ROTATION_DRAG_SENSITIVITY,
   linearEasing,
   MAX_POINT_SIZE_PX,
   MIN_POINT_SIZE_PX,
   normalizePointInnerFillOpacity,
+  normalizePointInnerFillColor,
   normalizePointLineDash,
   normalizePointOpacity,
   normalizePointSizeMagnificationStops,
   normalizePointSizeStops,
+  normalizePointWeightMagnificationStops,
   normalizeStrokeScale,
   normalizeTransitionEasing,
   normalizeViewTransitionDuration,
   normalizeZoomOverride,
   resolvePointSizeByMagnificationStops,
   resolvePointSizeByZoomStops,
+  resolvePointWeightByMagnificationStops,
   toNormalizedImageColorSettings,
 } from "./wsi-normalize";
 import type { PointBufferRuntime } from "./wsi-point-data";
@@ -39,11 +45,13 @@ import type {
   CachedTile,
   InteractionState,
   NormalizedImageColorSettings,
-  PointSizeByMagnification,
   PointProgram,
+  PointSizeByMagnification,
   PointSizeByZoom,
   PointSizeMagnificationStop,
   PointSizeStop,
+  PointWeightByMagnification,
+  PointWeightMagnificationStop,
   TileVertexProgram,
   ViewAnimationRuntimeState,
   WorldPoint,
@@ -65,7 +73,15 @@ import { cancelViewAnimation as cancelManagedViewAnimation, startViewAnimation }
 import { computeFitToImageTarget, computeZoomByTarget, computeZoomToTarget, resolveTargetViewState as resolveManagedTargetViewState, resolveZoomBounds } from "./wsi-view-ops";
 import { normalizeZoomSnaps, resolveSnapTarget, SNAP_ZOOM_DURATION_MS, startZoomPivotAnimation, type ZoomPivotAnimationContext } from "./wsi-zoom-snap";
 
-export type { PointSizeByMagnification, PointSizeByZoom, WsiTileErrorEvent, WsiTileRendererOptions, WsiTileSchedulerConfig, WsiViewTransitionOptions } from "./wsi-renderer-types";
+export type {
+  PointSizeByMagnification,
+  PointSizeByZoom,
+  PointWeightByMagnification,
+  WsiTileErrorEvent,
+  WsiTileRendererOptions,
+  WsiTileSchedulerConfig,
+  WsiViewTransitionOptions,
+} from "./wsi-renderer-types";
 
 const DEFAULT_POINT_LAYER_ID = "__default_point_layer__";
 
@@ -75,10 +91,12 @@ interface ManagedPointLayerState {
   runtime: PointBufferRuntime;
   pointSizeZoomStops: PointSizeStop[];
   pointSizeMagnificationStops: PointSizeMagnificationStop[] | null;
+  pointWeightMagnificationStops: PointWeightMagnificationStop[] | null;
   pointOpacity: number;
   pointLineDash: [number, number];
   pointStrokeScale: number;
   pointInnerFillOpacity: number;
+  pointInnerFillColor: [number, number, number];
 }
 
 export class WsiTileRenderer {
@@ -128,10 +146,12 @@ export class WsiTileRenderer {
   private readonly pointLayers = new Map<string, ManagedPointLayerState>();
   private defaultPointSizeZoomStops: PointSizeStop[] = clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
   private defaultPointSizeMagnificationStops: PointSizeMagnificationStop[] | null = null;
+  private defaultPointWeightMagnificationStops: PointWeightMagnificationStop[] | null = null;
   private defaultPointOpacity = 1.0;
   private defaultPointLineDash: [number, number] = [1, 0];
   private defaultPointStrokeScale = 1.0;
   private defaultPointInnerFillOpacity = 0;
+  private defaultPointInnerFillColor: [number, number, number] = [...DEFAULT_POINT_INNER_FILL_COLOR];
   private imageColorSettings: NormalizedImageColorSettings = {
     brightness: 0,
     contrast: 0,
@@ -184,9 +204,11 @@ export class WsiTileRenderer {
         : DEFAULT_ROTATION_DRAG_SENSITIVITY;
     this.defaultPointSizeZoomStops = normalizePointSizeStops(options.pointSizeByZoom);
     this.defaultPointSizeMagnificationStops = normalizePointSizeMagnificationStops(options.pointSizeByMagnification);
+    this.defaultPointWeightMagnificationStops = normalizePointWeightMagnificationStops(options.pointWeightByMagnification);
     this.defaultPointOpacity = normalizePointOpacity(options.pointOpacity);
     this.defaultPointStrokeScale = normalizeStrokeScale(options.pointStrokeScale);
     this.defaultPointInnerFillOpacity = normalizePointInnerFillOpacity(options.pointInnerFillOpacity);
+    this.defaultPointInnerFillColor = normalizePointInnerFillColor(options.pointInnerFillColor);
     this.imageColorSettings = toNormalizedImageColorSettings(options.imageColorSettings);
     this.minZoomOverride = normalizeZoomOverride(options.minZoom);
     this.maxZoomOverride = normalizeZoomOverride(options.maxZoom);
@@ -318,10 +340,12 @@ export class WsiTileRenderer {
       runtime: this.createPointBufferRuntime(),
       pointSizeZoomStops: clonePointSizeStops(this.defaultPointSizeZoomStops),
       pointSizeMagnificationStops: clonePointSizeMagnificationStops(this.defaultPointSizeMagnificationStops),
+      pointWeightMagnificationStops: clonePointWeightMagnificationStops(this.defaultPointWeightMagnificationStops),
       pointOpacity: this.defaultPointOpacity,
       pointLineDash: [...this.defaultPointLineDash] as [number, number],
       pointStrokeScale: this.defaultPointStrokeScale,
       pointInnerFillOpacity: this.defaultPointInnerFillOpacity,
+      pointInnerFillColor: [...this.defaultPointInnerFillColor],
     };
   }
 
@@ -358,8 +382,9 @@ export class WsiTileRenderer {
         pointPaletteSize: layer.runtime.pointPaletteSize,
         pointLineDash: layer.pointLineDash,
         pointOpacity: layer.pointOpacity,
-        pointStrokeScale: layer.pointStrokeScale,
+        pointStrokeScale: this.getPointStrokeScale(layer.id),
         pointInnerFillOpacity: layer.pointInnerFillOpacity,
+        pointInnerFillColor: layer.pointInnerFillColor,
         pointCssSizePx,
         pointSizePx: pointCssSizePx * dpr,
       });
@@ -499,6 +524,14 @@ export class WsiTileRenderer {
     this.requestRender();
   }
 
+  setPointWeightByMagnification(pointWeightByMagnification: PointWeightByMagnification | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
+    const nextStops = normalizePointWeightMagnificationStops(pointWeightByMagnification);
+    if (arePointWeightMagnificationStopsEqual(layer.pointWeightMagnificationStops, nextStops)) return;
+    layer.pointWeightMagnificationStops = nextStops;
+    this.requestRender();
+  }
+
   setPointOpacity(opacity: number | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
     const layer = this.ensurePointLayer(layerId);
     const next = normalizePointOpacity(opacity);
@@ -520,6 +553,20 @@ export class WsiTileRenderer {
     const next = normalizePointInnerFillOpacity(opacity);
     if (layer.pointInnerFillOpacity === next) return;
     layer.pointInnerFillOpacity = next;
+    this.requestRender();
+  }
+
+  setPointInnerFillColor(color: string | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
+    const next = normalizePointInnerFillColor(color);
+    if (
+      layer.pointInnerFillColor[0] === next[0] &&
+      layer.pointInnerFillColor[1] === next[1] &&
+      layer.pointInnerFillColor[2] === next[2]
+    ) {
+      return;
+    }
+    layer.pointInnerFillColor = next;
     this.requestRender();
   }
 
@@ -601,6 +648,19 @@ export class WsiTileRenderer {
 
   getPointSizeByZoom(layerId: string = DEFAULT_POINT_LAYER_ID): number {
     return this.getPointSize(layerId);
+  }
+
+  getPointStrokeScale(layerId: string = DEFAULT_POINT_LAYER_ID): number {
+    const layer = this.pointLayers.get(String(layerId || DEFAULT_POINT_LAYER_ID));
+    const magnificationStops = layer?.pointWeightMagnificationStops ?? this.defaultPointWeightMagnificationStops;
+    if (magnificationStops && magnificationStops.length > 0) {
+      const zoom = Math.max(1e-6, this.camera.getViewState().zoom);
+      const magnification = calcViewingMagnification(this.source.mpp ?? 0, zoom);
+      if (magnification > 0) {
+        return normalizeStrokeScale(resolvePointWeightByMagnificationStops(magnification, magnificationStops));
+      }
+    }
+    return layer?.pointStrokeScale ?? this.defaultPointStrokeScale;
   }
 
   fitToImage(transition?: WsiViewTransitionOptions): void {
