@@ -92,3 +92,48 @@ test("WsiTileRenderer.getPointSize: zoom stops still depend on pyramid depth", (
 
   assert.equal(WsiTileRenderer.prototype.getPointSize.call(renderer, layerId), 10);
 });
+
+test("WsiTileRenderer.getPointStrokeScale: magnification stops stay stable across pyramid depths", () => {
+  const stops = [
+    { magnification: 5, weight: 0.8 },
+    { magnification: 10, weight: 0.8 },
+    { magnification: 20, weight: 1.5 },
+    { magnification: 40, weight: 1.5 },
+  ];
+
+  const layerId = "layer";
+  const renderers = [
+    {
+      camera: { getViewState: () => ({ zoom: 1, offsetX: 0, offsetY: 0, rotationDeg: 0 }) },
+      source: { mpp: 0.25, maxTierZoom: 8 },
+      pointLayers: new Map([[layerId, { pointWeightMagnificationStops: stops, pointStrokeScale: 0.4 }]]),
+      defaultPointWeightMagnificationStops: null,
+      defaultPointStrokeScale: 1,
+    },
+    {
+      camera: { getViewState: () => ({ zoom: 1, offsetX: 0, offsetY: 0, rotationDeg: 0 }) },
+      source: { mpp: 0.25, maxTierZoom: 6 },
+      pointLayers: new Map([[layerId, { pointWeightMagnificationStops: stops, pointStrokeScale: 0.4 }]]),
+      defaultPointWeightMagnificationStops: null,
+      defaultPointStrokeScale: 1,
+    },
+  ];
+
+  const weightA = WsiTileRenderer.prototype.getPointStrokeScale.call(renderers[0], layerId);
+  const weightB = WsiTileRenderer.prototype.getPointStrokeScale.call(renderers[1], layerId);
+  assert.equal(weightA, 1.5);
+  assert.equal(weightB, 1.5);
+});
+
+test("WsiTileRenderer.getPointStrokeScale: falls back to static strokeScale when no magnification stops are set", () => {
+  const layerId = "layer";
+  const renderer = {
+    camera: { getViewState: () => ({ zoom: 1, offsetX: 0, offsetY: 0, rotationDeg: 0 }) },
+    source: { mpp: 0.25, maxTierZoom: 8 },
+    pointLayers: new Map([[layerId, { pointWeightMagnificationStops: null, pointStrokeScale: 1.7 }]]),
+    defaultPointWeightMagnificationStops: null,
+    defaultPointStrokeScale: 1,
+  };
+
+  assert.equal(WsiTileRenderer.prototype.getPointStrokeScale.call(renderer, layerId), 1.7);
+});

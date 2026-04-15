@@ -157,6 +157,7 @@ export type {
   PointSizeByMagnification,
   PointSizeByZoom,
   WsiTileBlacklistConfig,
+  PointWeightByMagnification,
   WsiTileErrorEvent,
   WsiTileRendererOptions,
   WsiTileSchedulerConfig,

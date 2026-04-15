@@ -41,6 +41,7 @@ export interface PointProgram {
   uPointLineDash: WebGLUniformLocation;
   uPointStrokeScale: WebGLUniformLocation;
   uPointInnerFillAlpha: WebGLUniformLocation;
+  uPointInnerFillColor: WebGLUniformLocation;
 }
 
 export interface PointSizeStop {
@@ -53,8 +54,14 @@ export interface PointSizeMagnificationStop {
   size: number;
 }
 
+export interface PointWeightMagnificationStop {
+  magnification: number;
+  weight: number;
+}
+
 export type PointSizeByZoom = Readonly<Record<number, number>>;
 export type PointSizeByMagnification = Readonly<Record<number, number>>;
+export type PointWeightByMagnification = Readonly<Record<number, number>>;
 
 export interface WsiViewTransitionOptions {
   duration?: number;
@@ -91,9 +98,11 @@ export interface WsiTileRendererOptions {
   viewTransition?: WsiViewTransitionOptions;
   pointSizeByZoom?: PointSizeByZoom;
   pointSizeByMagnification?: PointSizeByMagnification;
+  pointWeightByMagnification?: PointWeightByMagnification;
   pointOpacity?: number;
   pointStrokeScale?: number;
   pointInnerFillOpacity?: number;
+  pointInnerFillColor?: string;
   maxCacheTiles?: number;
   ctrlDragRotate?: boolean;
   rotationDragSensitivityDegPerPixel?: number;

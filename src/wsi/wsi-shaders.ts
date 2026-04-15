@@ -125,6 +125,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
     uniform float uPointOpacity;
     uniform float uPointStrokeScale;
     uniform float uPointInnerFillAlpha;
+    uniform vec3 uPointInnerFillColor;
     uniform vec2 uPointLineDash;
     out vec4 outColor;
     void main() {
@@ -161,8 +162,8 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
         float fillAlpha = outerMask * (1.0 - innerMask) * clamp(uPointInnerFillAlpha, 0.0, 1.0);
         float alpha = (ringAlpha + fillAlpha) * pointOpacity;
         if (alpha <= 0.001) discard;
-        // Premultiplied alpha output: inner fill is black, so it only contributes alpha.
-        outColor = vec4(color.rgb * ringAlpha * pointOpacity, alpha);
+        vec3 fillRgb = (uPointInnerFillColor / 255.0) * fillAlpha * pointOpacity;
+        outColor = vec4(color.rgb * ringAlpha * pointOpacity + fillRgb, alpha);
       }
     }`;
 
@@ -173,6 +174,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
   const uPointOpacity = requireUniformLocation(gl, program, "uPointOpacity");
   const uPointStrokeScale = requireUniformLocation(gl, program, "uPointStrokeScale");
   const uPointInnerFillAlpha = requireUniformLocation(gl, program, "uPointInnerFillAlpha");
+  const uPointInnerFillColor = requireUniformLocation(gl, program, "uPointInnerFillColor");
   const uPalette = requireUniformLocation(gl, program, "uPalette");
   const uPaletteSize = requireUniformLocation(gl, program, "uPaletteSize");
   const uPointLineDash = requireUniformLocation(gl, program, "uPointLineDash");
@@ -246,6 +248,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
     uPointLineDash,
     uPointStrokeScale,
     uPointInnerFillAlpha,
+    uPointInnerFillColor,
     uPalette,
     uPaletteSize,
   };

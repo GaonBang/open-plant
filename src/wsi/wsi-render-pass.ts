@@ -12,6 +12,7 @@ export interface RenderPointLayer {
   pointOpacity: number;
   pointStrokeScale: number;
   pointInnerFillOpacity: number;
+  pointInnerFillColor: [number, number, number];
   pointCssSizePx: number;
   pointSizePx: number;
 }
@@ -143,6 +144,7 @@ export function renderFrame(options: RenderFrameOptions): RenderFrameResult {
       gl.uniform1f(layer.pointProgram.uPointOpacity, layer.pointOpacity);
       gl.uniform1f(layer.pointProgram.uPointStrokeScale, layer.pointStrokeScale);
       gl.uniform1f(layer.pointProgram.uPointInnerFillAlpha, layer.pointInnerFillOpacity);
+      gl.uniform3f(layer.pointProgram.uPointInnerFillColor, layer.pointInnerFillColor[0], layer.pointInnerFillColor[1], layer.pointInnerFillColor[2]);
       gl.uniform1f(layer.pointProgram.uPaletteSize, layer.pointPaletteSize);
       gl.uniform1i(layer.pointProgram.uPalette, 1);
       gl.activeTexture(gl.TEXTURE1);
