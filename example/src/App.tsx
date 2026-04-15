@@ -28,6 +28,7 @@ import { DrawToolbar } from "./components/DrawToolbar";
 import { PointControls } from "./components/PointControls";
 import { StatusBar } from "./components/StatusBar";
 import { StatusOverlay } from "./components/StatusOverlay";
+import { TileDebugGrid } from "./components/TileDebugGrid";
 import { Topbar } from "./components/Topbar";
 import { ViewerControls } from "./components/ViewerControls";
 import { useDrawState } from "./hooks/useDrawState";
@@ -134,6 +135,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("open-plant-token", tokenInput);
   }, [tokenInput]);
+
+  const [showDebugGrid, setShowDebugGrid] = useState(false);
+  const [enableBlacklist, setEnableBlacklist] = useState(true);
 
   const [stats, setStats] = useState<WsiRenderStats>({
     tier: 0,
@@ -478,10 +482,14 @@ export default function App() {
             disabled={!source}
             ctrlDragRotate={viewer.ctrlDragRotate}
             showOverviewMap={viewer.showOverviewMap}
+            showDebugGrid={showDebugGrid}
+            enableBlacklist={enableBlacklist}
             onFit={() => imageLoader.setFitNonce(prev => prev + 1)}
             onResetRotation={() => viewer.setRotationResetNonce(prev => prev + 1)}
             onToggleCtrlDragRotate={() => viewer.setCtrlDragRotate(prev => !prev)}
             onToggleOverviewMap={() => viewer.setShowOverviewMap(prev => !prev)}
+            onToggleDebugGrid={() => setShowDebugGrid(prev => !prev)}
+            onToggleBlacklist={() => setEnableBlacklist(prev => !prev)}
             onZoomIn={viewer.handleZoomIn}
             onZoomOut={viewer.handleZoomOut}
             clipMode={viewer.clipMode}
@@ -581,6 +589,7 @@ export default function App() {
                   setPointerWorld(null);
                 }
               }}
+              tileBlacklist={{ enabled: enableBlacklist }}
               panExtent={{ x: 1, y: 0.1 }}
               className="viewer-canvas"
               initialRotate={-90}
@@ -631,6 +640,7 @@ export default function App() {
               <OverlayLayer shapes={overlayShapes} />
               <PatchLayer regions={draw.patchRegions} strokeStyle={patchStrokeStyle} />
               <PatchLabelOverlay patchRegions={draw.patchRegions} />
+              {showDebugGrid && <TileDebugGrid />}
               <ViewerOverviewMap authToken={bearerToken} show={viewer.showOverviewMap} options={overviewMapOptions} />
             </WsiViewer>
             <div
