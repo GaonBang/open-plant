@@ -207,6 +207,7 @@ export class WsiTileRenderer {
       retryBaseDelayMs: options.tileScheduler?.retryBaseDelayMs ?? 120,
       retryMaxDelayMs: options.tileScheduler?.retryMaxDelayMs ?? 1200,
       blacklistEnabled: options.tileBlacklist?.enabled ?? false,
+      immediateBlacklistStatuses: options.tileBlacklist?.immediateBlacklistStatuses,
       onTileLoad: (tile, bitmap) =>
         cacheTileLoaded({
           gl: this.gl,

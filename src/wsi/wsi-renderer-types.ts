@@ -57,6 +57,8 @@ export interface WsiViewTransitionOptions {
 
 export interface WsiTileBlacklistConfig {
   enabled: boolean;
+  /** HTTP status codes that trigger immediate blacklisting without retry (e.g. [404, 410]). */
+  immediateBlacklistStatuses?: number[];
 }
 
 export interface WsiTileSchedulerConfig {

@@ -589,7 +589,7 @@ export default function App() {
                   setPointerWorld(null);
                 }
               }}
-              tileBlacklist={{ enabled: enableBlacklist }}
+              tileBlacklist={{ enabled: enableBlacklist, immediateBlacklistStatuses: [404, 410, 403] }}
               panExtent={{ x: 1, y: 0.1 }}
               className="viewer-canvas"
               initialRotate={-90}

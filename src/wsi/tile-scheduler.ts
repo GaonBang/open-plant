@@ -27,6 +27,7 @@ export interface TileSchedulerOptions {
 	retryMaxDelayMs?: number;
 	authToken?: string;
 	blacklistEnabled?: boolean;
+	immediateBlacklistStatuses?: number[];
 	onTileLoad: (tile: ScheduledTile, bitmap: ImageBitmap) => void;
 	onTileError?: (
 		tile: ScheduledTile,
@@ -68,6 +69,7 @@ export class TileScheduler {
 	private readonly retryBaseDelayMs: number;
 	private readonly retryMaxDelayMs: number;
 	private readonly blacklistEnabled: boolean;
+	private readonly immediateBlacklistStatuses: ReadonlySet<number>;
 	private readonly onTileLoad: (tile: ScheduledTile, bitmap: ImageBitmap) => void;
 	private readonly onTileError?:
 		| ((tile: ScheduledTile, error: unknown, attemptCount: number) => void)
@@ -101,6 +103,7 @@ export class TileScheduler {
 		);
 		this.authToken = options.authToken ?? "";
 		this.blacklistEnabled = options.blacklistEnabled ?? false;
+		this.immediateBlacklistStatuses = new Set(options.immediateBlacklistStatuses ?? []);
 		this.onTileLoad = options.onTileLoad;
 		this.onTileError = options.onTileError;
 		this.onStateChange = options.onStateChange;
@@ -280,7 +283,9 @@ export class TileScheduler {
 		})
 			.then((response) => {
 				if (!response.ok) {
-					throw new Error(`HTTP ${response.status}`);
+					const err = new Error(`HTTP ${response.status}`);
+					(err as Error & { status: number }).status = response.status;
+					throw err;
 				}
 				return response.blob();
 			})
@@ -298,6 +303,14 @@ export class TileScheduler {
 			})
 			.catch((error: unknown) => {
 				if (controller.signal.aborted || this.destroyed) {
+					return;
+				}
+
+				const httpStatus = (error as Error & { status?: number }).status;
+				if (httpStatus && this.blacklistEnabled && this.immediateBlacklistStatuses.has(httpStatus)) {
+					this.failedCount += 1;
+					this.blacklistedKeys.add(item.tile.key);
+					this.onTileError?.(item.tile, error, item.attempt + 1);
 					return;
 				}
 

@@ -95,6 +95,8 @@ export function WsiViewer({
   const onContextLostRef = useRef(onContextLost);
   const onContextRestoredRef = useRef(onContextRestored);
 
+  const immediateBlacklistStatusesKey = tileBlacklist?.immediateBlacklistStatuses?.join(",") ?? "";
+
   const [rendererSerial, setRendererSerial] = useState(0);
   const [debugStats, setDebugStats] = useState<WsiRenderStats | null>(null);
   const debugOverlayRef = useRef(debugOverlay);
@@ -339,7 +341,7 @@ export function WsiViewer({
       renderer.destroy();
       rendererRef.current = null;
     };
-  }, [source, handleRendererStats, ctrlDragRotate, emitViewStateChange, initialRotateValue, toInternalViewState, tileBlacklist?.enabled]);
+  }, [source, handleRendererStats, ctrlDragRotate, emitViewStateChange, initialRotateValue, toInternalViewState, tileBlacklist?.enabled, immediateBlacklistStatusesKey]);
 
   // --- core renderer sync effects ---
 
