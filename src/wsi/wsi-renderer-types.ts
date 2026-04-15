@@ -48,7 +48,13 @@ export interface PointSizeStop {
   size: number;
 }
 
+export interface PointSizeMagnificationStop {
+  magnification: number;
+  size: number;
+}
+
 export type PointSizeByZoom = Readonly<Record<number, number>>;
+export type PointSizeByMagnification = Readonly<Record<number, number>>;
 
 export interface WsiViewTransitionOptions {
   duration?: number;
@@ -78,6 +84,7 @@ export interface WsiTileRendererOptions {
   maxZoom?: number;
   viewTransition?: WsiViewTransitionOptions;
   pointSizeByZoom?: PointSizeByZoom;
+  pointSizeByMagnification?: PointSizeByMagnification;
   pointOpacity?: number;
   pointStrokeScale?: number;
   pointInnerFillOpacity?: number;

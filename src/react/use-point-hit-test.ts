@@ -55,7 +55,7 @@ export function usePointHitTest(
       if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
 
       const zoom = Math.max(1e-6, renderer.getViewState().zoom);
-      const pointSizePx = renderer.getPointSizeByZoom(pointLayerId);
+      const pointSizePx = renderer.getPointSize(pointLayerId);
       const hitRadiusPx = Math.max(MIN_POINT_HIT_RADIUS_PX, pointSizePx * POINT_HIT_RADIUS_SCALE);
       const hitRadiusWorld = hitRadiusPx / zoom;
       if (!Number.isFinite(hitRadiusWorld) || hitRadiusWorld <= 0) return null;

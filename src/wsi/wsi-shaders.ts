@@ -146,7 +146,7 @@ export function initPointProgram(gl: WebGL2RenderingContext): PointProgram {
         outColor = vec4(color.rgb * alpha, alpha);
       } else {
         float s = uPointStrokeScale;
-        float ringWidth = s * mix(0.18, 0.35, smoothstep(3.0, 16.0, uPointCssSize));
+        float ringWidth = s * mix(0.18, 0.28, smoothstep(3.0, 12.0, uPointCssSize));
         float innerRadius = 1.0 - ringWidth;
         float innerMask = smoothstep(innerRadius - aa, innerRadius + aa, r);
         float dashMask = 1.0;

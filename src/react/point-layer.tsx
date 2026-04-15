@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { PointClipMode } from "../wsi/point-clip-worker-client";
 import type { WsiPointData, WsiRegion } from "../wsi/types";
-import type { PointSizeByZoom } from "../wsi/wsi-tile-renderer";
+import type { PointSizeByMagnification, PointSizeByZoom } from "../wsi/wsi-tile-renderer";
 import type { DrawCoordinate } from "./draw-layer-types";
 import { usePointClipping } from "./use-point-clipping";
 import { usePointHitTest } from "./use-point-hit-test";
@@ -12,6 +12,7 @@ export interface PointLayerProps {
   data?: WsiPointData | null;
   palette?: Uint8Array | null;
   sizeByZoom?: PointSizeByZoom;
+  sizeByMagnification?: PointSizeByMagnification;
   opacity?: number;
   strokeScale?: number;
   innerFillOpacity?: number;
@@ -31,7 +32,7 @@ export interface PointQueryHandle {
 let nextPointLayerId = 0;
 
 export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function PointLayer(
-  { data = null, palette = null, sizeByZoom, opacity, strokeScale, innerFillOpacity, clipEnabled = false, clipToRegions, clipMode = "worker", onClipStats, onHover, onClick, dashed },
+  { data = null, palette = null, sizeByZoom, sizeByMagnification, opacity, strokeScale, innerFillOpacity, clipEnabled = false, clipToRegions, clipMode = "worker", onClipStats, onHover, onClick, dashed },
   ref
 ) {
   const { rendererRef, rendererSerial, source } = useViewerContext();
@@ -70,9 +71,15 @@ export const PointLayer = forwardRef<PointQueryHandle, PointLayerProps>(function
 
   useEffect(() => {
     const renderer = rendererRef.current;
-    if (!renderer || sizeByZoom === undefined) return;
+    if (!renderer) return;
     renderer.setPointSizeByZoom(sizeByZoom, layerIdRef.current);
   }, [rendererSerial, sizeByZoom, rendererRef]);
+
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setPointSizeByMagnification(sizeByMagnification, layerIdRef.current);
+  }, [rendererSerial, sizeByMagnification, rendererRef]);
 
   useEffect(() => {
     const renderer = rendererRef.current;

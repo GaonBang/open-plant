@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildClassPalette, calcScaleLength, calcScaleResolution, isSameViewState, toBearerToken } from "../../dist/index.js";
+import { WsiTileRenderer, buildClassPalette, calcScaleLength, calcScaleResolution, calcViewingMagnification, isSameViewState, toBearerToken } from "../../dist/index.js";
 
 test("toBearerToken: normalizes token format", () => {
   assert.equal(toBearerToken("abc"), "Bearer abc");
@@ -14,6 +14,12 @@ test("calcScaleResolution and calcScaleLength", () => {
   assert.ok(Math.abs(calcScaleResolution(0.25, 8, 8) - 0.25) < 1e-9);
   assert.ok(Math.abs(calcScaleResolution(0.25, 8, 7) - 0.5) < 1e-9);
   assert.match(calcScaleLength(0.25, 8, 8), /(μm|mm)/);
+});
+
+test("calcViewingMagnification: derives viewing magnification from mpp and view zoom", () => {
+  assert.equal(calcViewingMagnification(0.25, 1), 40);
+  assert.equal(calcViewingMagnification(0.25, 0.5), 20);
+  assert.equal(calcViewingMagnification(0, 1), 0);
 });
 
 test("isSameViewState: compares with epsilon tolerance", () => {
@@ -39,4 +45,50 @@ test("buildClassPalette: falls back to className when classId is empty", () => {
   ]);
 
   assert.equal(palette.classToPaletteIndex.get("Positive"), 1);
+});
+
+test("WsiTileRenderer.getPointSize: magnification stops stay stable across pyramid depths", () => {
+  const stops = [
+    { magnification: 5, size: 5 },
+    { magnification: 10, size: 5 },
+    { magnification: 20, size: 8 },
+    { magnification: 40, size: 8 },
+  ];
+
+  const layerId = "layer";
+  const renderers = [
+    {
+      camera: { getViewState: () => ({ zoom: 1, offsetX: 0, offsetY: 0, rotationDeg: 0 }) },
+      source: { mpp: 0.25, maxTierZoom: 8 },
+      pointLayers: new Map([[layerId, { pointSizeMagnificationStops: stops, pointSizeZoomStops: [{ zoom: 8, size: 12 }] }]]),
+      defaultPointSizeMagnificationStops: null,
+      defaultPointSizeZoomStops: [{ zoom: 1, size: 1 }],
+    },
+    {
+      camera: { getViewState: () => ({ zoom: 1, offsetX: 0, offsetY: 0, rotationDeg: 0 }) },
+      source: { mpp: 0.25, maxTierZoom: 6 },
+      pointLayers: new Map([[layerId, { pointSizeMagnificationStops: stops, pointSizeZoomStops: [{ zoom: 6, size: 4 }] }]]),
+      defaultPointSizeMagnificationStops: null,
+      defaultPointSizeZoomStops: [{ zoom: 1, size: 1 }],
+    },
+  ];
+
+  const sizeA = WsiTileRenderer.prototype.getPointSize.call(renderers[0], layerId);
+  const sizeB = WsiTileRenderer.prototype.getPointSize.call(renderers[1], layerId);
+  assert.equal(sizeA, 8);
+  assert.equal(sizeB, 8);
+});
+
+test("WsiTileRenderer.getPointSize: zoom stops still depend on pyramid depth", () => {
+  const layerId = "layer";
+  const zoomStops = [{ zoom: 6, size: 6 }, { zoom: 8, size: 10 }];
+  const renderer = {
+    camera: { getViewState: () => ({ zoom: 1, offsetX: 0, offsetY: 0, rotationDeg: 0 }) },
+    source: { mpp: 0.25, maxTierZoom: 8 },
+    pointLayers: new Map([[layerId, { pointSizeMagnificationStops: null, pointSizeZoomStops: zoomStops }]]),
+    defaultPointSizeMagnificationStops: null,
+    defaultPointSizeZoomStops: [{ zoom: 1, size: 1 }],
+  };
+
+  assert.equal(WsiTileRenderer.prototype.getPointSize.call(renderer, layerId), 10);
 });

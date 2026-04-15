@@ -2,13 +2,15 @@ import { OrthoCamera } from "../core/ortho-camera";
 import { observeDevicePixelRatioChanges } from "./device-pixel-ratio";
 import { TileScheduler } from "./tile-scheduler";
 import type { WsiImageColorSettings, WsiImageSource, WsiPointData, WsiRenderStats, WsiViewState } from "./types";
-import { clamp, isSameViewState, nowMs } from "./utils";
+import { calcViewingMagnification, clamp, isSameViewState, nowMs } from "./utils";
 import { addRendererCanvasEventListeners, type RendererCanvasHandlers, removeRendererCanvasEventListeners, resizeCanvasViewport } from "./wsi-canvas-lifecycle";
 import { cancelDrag as cancelInputDrag, createRendererInputHandlers } from "./wsi-input-handlers";
 import { applyWheelSnapDelta, applyWheelZoomDelta } from "./wsi-interaction";
 import { destroyRenderer, handleContextLost } from "./wsi-lifecycle-ops";
 import {
+  arePointSizeMagnificationStopsEqual,
   arePointSizeStopsEqual,
+  clonePointSizeMagnificationStops,
   clonePointSizeStops,
   DEFAULT_POINT_SIZE_STOPS,
   DEFAULT_ROTATION_DRAG_SENSITIVITY,
@@ -18,11 +20,13 @@ import {
   normalizePointInnerFillOpacity,
   normalizePointLineDash,
   normalizePointOpacity,
+  normalizePointSizeMagnificationStops,
   normalizePointSizeStops,
   normalizeStrokeScale,
   normalizeTransitionEasing,
   normalizeViewTransitionDuration,
   normalizeZoomOverride,
+  resolvePointSizeByMagnificationStops,
   resolvePointSizeByZoomStops,
   toNormalizedImageColorSettings,
 } from "./wsi-normalize";
@@ -35,8 +39,10 @@ import type {
   CachedTile,
   InteractionState,
   NormalizedImageColorSettings,
+  PointSizeByMagnification,
   PointProgram,
   PointSizeByZoom,
+  PointSizeMagnificationStop,
   PointSizeStop,
   TileVertexProgram,
   ViewAnimationRuntimeState,
@@ -59,7 +65,7 @@ import { cancelViewAnimation as cancelManagedViewAnimation, startViewAnimation }
 import { computeFitToImageTarget, computeZoomByTarget, computeZoomToTarget, resolveTargetViewState as resolveManagedTargetViewState, resolveZoomBounds } from "./wsi-view-ops";
 import { normalizeZoomSnaps, resolveSnapTarget, SNAP_ZOOM_DURATION_MS, startZoomPivotAnimation, type ZoomPivotAnimationContext } from "./wsi-zoom-snap";
 
-export type { PointSizeByZoom, WsiTileErrorEvent, WsiTileRendererOptions, WsiTileSchedulerConfig, WsiViewTransitionOptions } from "./wsi-renderer-types";
+export type { PointSizeByMagnification, PointSizeByZoom, WsiTileErrorEvent, WsiTileRendererOptions, WsiTileSchedulerConfig, WsiViewTransitionOptions } from "./wsi-renderer-types";
 
 const DEFAULT_POINT_LAYER_ID = "__default_point_layer__";
 
@@ -67,7 +73,8 @@ interface ManagedPointLayerState {
   id: string;
   program: PointProgram;
   runtime: PointBufferRuntime;
-  pointSizeStops: PointSizeStop[];
+  pointSizeZoomStops: PointSizeStop[];
+  pointSizeMagnificationStops: PointSizeMagnificationStop[] | null;
   pointOpacity: number;
   pointLineDash: [number, number];
   pointStrokeScale: number;
@@ -119,7 +126,8 @@ export class WsiTileRenderer {
     frame: null,
   };
   private readonly pointLayers = new Map<string, ManagedPointLayerState>();
-  private defaultPointSizeStops: PointSizeStop[] = clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
+  private defaultPointSizeZoomStops: PointSizeStop[] = clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
+  private defaultPointSizeMagnificationStops: PointSizeMagnificationStop[] | null = null;
   private defaultPointOpacity = 1.0;
   private defaultPointLineDash: [number, number] = [1, 0];
   private defaultPointStrokeScale = 1.0;
@@ -174,7 +182,8 @@ export class WsiTileRenderer {
       typeof options.rotationDragSensitivityDegPerPixel === "number" && Number.isFinite(options.rotationDragSensitivityDegPerPixel)
         ? Math.max(0, options.rotationDragSensitivityDegPerPixel)
         : DEFAULT_ROTATION_DRAG_SENSITIVITY;
-    this.defaultPointSizeStops = normalizePointSizeStops(options.pointSizeByZoom);
+    this.defaultPointSizeZoomStops = normalizePointSizeStops(options.pointSizeByZoom);
+    this.defaultPointSizeMagnificationStops = normalizePointSizeMagnificationStops(options.pointSizeByMagnification);
     this.defaultPointOpacity = normalizePointOpacity(options.pointOpacity);
     this.defaultPointStrokeScale = normalizeStrokeScale(options.pointStrokeScale);
     this.defaultPointInnerFillOpacity = normalizePointInnerFillOpacity(options.pointInnerFillOpacity);
@@ -307,7 +316,8 @@ export class WsiTileRenderer {
       id,
       program: initPointProgram(this.gl),
       runtime: this.createPointBufferRuntime(),
-      pointSizeStops: clonePointSizeStops(this.defaultPointSizeStops),
+      pointSizeZoomStops: clonePointSizeStops(this.defaultPointSizeZoomStops),
+      pointSizeMagnificationStops: clonePointSizeMagnificationStops(this.defaultPointSizeMagnificationStops),
       pointOpacity: this.defaultPointOpacity,
       pointLineDash: [...this.defaultPointLineDash] as [number, number],
       pointStrokeScale: this.defaultPointStrokeScale,
@@ -340,7 +350,7 @@ export class WsiTileRenderer {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const out: RenderPointLayer[] = [];
     for (const layer of this.pointLayers.values()) {
-      const pointCssSizePx = this.getPointSizeByZoom(layer.id);
+      const pointCssSizePx = this.getPointSize(layer.id);
       out.push({
         pointProgram: layer.program,
         pointCount: layer.runtime.pointCount,
@@ -476,8 +486,16 @@ export class WsiTileRenderer {
   setPointSizeByZoom(pointSizeByZoom: PointSizeByZoom | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
     const layer = this.ensurePointLayer(layerId);
     const nextStops = normalizePointSizeStops(pointSizeByZoom);
-    if (arePointSizeStopsEqual(layer.pointSizeStops, nextStops)) return;
-    layer.pointSizeStops = nextStops;
+    if (arePointSizeStopsEqual(layer.pointSizeZoomStops, nextStops)) return;
+    layer.pointSizeZoomStops = nextStops;
+    this.requestRender();
+  }
+
+  setPointSizeByMagnification(pointSizeByMagnification: PointSizeByMagnification | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
+    const layer = this.ensurePointLayer(layerId);
+    const nextStops = normalizePointSizeMagnificationStops(pointSizeByMagnification);
+    if (arePointSizeMagnificationStopsEqual(layer.pointSizeMagnificationStops, nextStops)) return;
+    layer.pointSizeMagnificationStops = nextStops;
     this.requestRender();
   }
 
@@ -562,13 +580,27 @@ export class WsiTileRenderer {
     this.setViewState({ rotationDeg: this.initialRotationDeg }, transition);
   }
 
-  getPointSizeByZoom(layerId: string = DEFAULT_POINT_LAYER_ID): number {
+  getPointSize(layerId: string = DEFAULT_POINT_LAYER_ID): number {
+    const layer = this.pointLayers.get(String(layerId || DEFAULT_POINT_LAYER_ID));
+    const magnificationStops = layer?.pointSizeMagnificationStops ?? this.defaultPointSizeMagnificationStops;
+    if (magnificationStops && magnificationStops.length > 0) {
+      const zoom = Math.max(1e-6, this.camera.getViewState().zoom);
+      const magnification = calcViewingMagnification(this.source.mpp ?? 0, zoom);
+      if (magnification > 0) {
+        const size = resolvePointSizeByMagnificationStops(magnification, magnificationStops);
+        return clamp(size, MIN_POINT_SIZE_PX, MAX_POINT_SIZE_PX);
+      }
+    }
+
     const zoom = Math.max(1e-6, this.camera.getViewState().zoom);
     const continuousZoom = this.source.maxTierZoom + Math.log2(zoom);
-    const layer = this.pointLayers.get(String(layerId || DEFAULT_POINT_LAYER_ID));
-    const stops = layer?.pointSizeStops ?? this.defaultPointSizeStops;
+    const stops = layer?.pointSizeZoomStops ?? this.defaultPointSizeZoomStops;
     const size = resolvePointSizeByZoomStops(continuousZoom, stops);
     return clamp(size, MIN_POINT_SIZE_PX, MAX_POINT_SIZE_PX);
+  }
+
+  getPointSizeByZoom(layerId: string = DEFAULT_POINT_LAYER_ID): number {
+    return this.getPointSize(layerId);
   }
 
   fitToImage(transition?: WsiViewTransitionOptions): void {
