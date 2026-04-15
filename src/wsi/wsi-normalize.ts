@@ -1,6 +1,6 @@
 import type { WsiImageColorSettings } from "./types";
 import { clamp } from "./utils";
-import type { NormalizedImageColorSettings, PointSizeByZoom, PointSizeStop } from "./wsi-renderer-types";
+import type { NormalizedImageColorSettings, PointSizeByMagnification, PointSizeByZoom, PointSizeMagnificationStop, PointSizeStop } from "./wsi-renderer-types";
 
 export const DEFAULT_ROTATION_DRAG_SENSITIVITY = 0.35;
 export const MIN_POINT_SIZE_PX = 0.5;
@@ -44,6 +44,11 @@ export function clonePointSizeStops(stops: readonly PointSizeStop[]): PointSizeS
   return stops.map(stop => ({ zoom: stop.zoom, size: stop.size }));
 }
 
+export function clonePointSizeMagnificationStops(stops: readonly PointSizeMagnificationStop[] | null | undefined): PointSizeMagnificationStop[] | null {
+  if (!stops || stops.length === 0) return null;
+  return stops.map(stop => ({ magnification: stop.magnification, size: stop.size }));
+}
+
 export function normalizePointSizeStops(pointSizeByZoom: PointSizeByZoom | null | undefined): PointSizeStop[] {
   if (!pointSizeByZoom) return clonePointSizeStops(DEFAULT_POINT_SIZE_STOPS);
 
@@ -64,11 +69,46 @@ export function normalizePointSizeStops(pointSizeByZoom: PointSizeByZoom | null 
     .map(([zoom, size]) => ({ zoom, size }));
 }
 
+export function normalizePointSizeMagnificationStops(pointSizeByMagnification: PointSizeByMagnification | null | undefined): PointSizeMagnificationStop[] | null {
+  if (!pointSizeByMagnification) return null;
+
+  const parsed = new Map<number, number>();
+  for (const [magnificationKey, rawSize] of Object.entries(pointSizeByMagnification)) {
+    const magnification = Number(magnificationKey);
+    const size = Number(rawSize);
+    if (!Number.isFinite(magnification) || magnification <= 0 || !Number.isFinite(size) || size <= 0) continue;
+    parsed.set(magnification, size);
+  }
+
+  if (parsed.size === 0) {
+    return null;
+  }
+
+  return Array.from(parsed.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([magnification, size]) => ({ magnification, size }));
+}
+
 export function arePointSizeStopsEqual(a: readonly PointSizeStop[], b: readonly PointSizeStop[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
     if (a[i].zoom !== b[i].zoom || a[i].size !== b[i].size) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function arePointSizeMagnificationStopsEqual(
+  a: readonly PointSizeMagnificationStop[] | null | undefined,
+  b: readonly PointSizeMagnificationStop[] | null | undefined
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i].magnification !== b[i].magnification || a[i].size !== b[i].size) {
       return false;
     }
   }
@@ -95,6 +135,28 @@ export function resolvePointSizeByZoomStops(continuousZoom: number, stops: reado
   const span = Math.max(1e-6, last.zoom - prev.zoom);
   const slope = (last.size - prev.size) / span;
   return last.size + (continuousZoom - last.zoom) * slope;
+}
+
+export function resolvePointSizeByMagnificationStops(magnification: number, stops: readonly PointSizeMagnificationStop[]): number {
+  if (!Number.isFinite(magnification)) return stops[0]?.size ?? MIN_POINT_SIZE_PX;
+  if (stops.length === 0) return MIN_POINT_SIZE_PX;
+  if (stops.length === 1) return stops[0].size;
+  if (magnification <= stops[0].magnification) return stops[0].size;
+
+  for (let i = 1; i < stops.length; i += 1) {
+    const prev = stops[i - 1];
+    const next = stops[i];
+    if (magnification > next.magnification) continue;
+    const span = Math.max(1e-6, next.magnification - prev.magnification);
+    const t = clamp((magnification - prev.magnification) / span, 0, 1);
+    return prev.size + (next.size - prev.size) * t;
+  }
+
+  const last = stops[stops.length - 1];
+  const prev = stops[stops.length - 2];
+  const span = Math.max(1e-6, last.magnification - prev.magnification);
+  const slope = (last.size - prev.size) / span;
+  return last.size + (magnification - last.magnification) * slope;
 }
 
 export function normalizeStrokeScale(value: number | null | undefined): number {

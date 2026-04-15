@@ -143,6 +143,7 @@ export {
   buildClassPalette,
   calcScaleLength,
   calcScaleResolution,
+  calcViewingMagnification,
   clamp,
   hexToRgba,
   isSameViewState,
@@ -153,6 +154,7 @@ export { getWebGpuCapabilities, prefilterPointsByBoundsWebGpu } from "./wsi/webg
 export type { ParsedWktGeometry, ParsedWktMultiPolygon, ParsedWktPolygon } from "./wsi/wkt";
 export { parseWkt } from "./wsi/wkt";
 export type {
+  PointSizeByMagnification,
   PointSizeByZoom,
   WsiTileBlacklistConfig,
   WsiTileErrorEvent,

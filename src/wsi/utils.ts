@@ -18,6 +18,17 @@ export function calcScaleResolution(
 	return Math.pow(2, z0 - z1) * mpp;
 }
 
+export function calcViewingMagnification(
+	imageMpp: number,
+	viewZoom: number,
+): number {
+	const mpp = Number(imageMpp);
+	const zoom = Number(viewZoom);
+	if (!Number.isFinite(mpp) || mpp <= 0) return 0;
+	if (!Number.isFinite(zoom) || zoom <= 0) return 0;
+	return zoom * (10 / mpp);
+}
+
 export function calcScaleLength(
 	imageMpp: number,
 	imageZoom: number,
