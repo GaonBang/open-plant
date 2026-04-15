@@ -26,6 +26,7 @@ export interface TileSchedulerOptions {
 	retryBaseDelayMs?: number;
 	retryMaxDelayMs?: number;
 	authToken?: string;
+	blacklistEnabled?: boolean;
 	onTileLoad: (tile: ScheduledTile, bitmap: ImageBitmap) => void;
 	onTileError?: (
 		tile: ScheduledTile,
@@ -66,6 +67,7 @@ export class TileScheduler {
 	private readonly maxRetries: number;
 	private readonly retryBaseDelayMs: number;
 	private readonly retryMaxDelayMs: number;
+	private readonly blacklistEnabled: boolean;
 	private readonly onTileLoad: (tile: ScheduledTile, bitmap: ImageBitmap) => void;
 	private readonly onTileError?:
 		| ((tile: ScheduledTile, error: unknown, attemptCount: number) => void)
@@ -80,6 +82,7 @@ export class TileScheduler {
 	private queuedByKey = new Map<string, QueueItem>();
 	private inflight = new Map<string, InflightItem>();
 	private visibleKeys = new Set<string>();
+	private readonly blacklistedKeys = new Set<string>();
 	private timerId: number | null = null;
 	private abortedCount = 0;
 	private retryCount = 0;
@@ -97,6 +100,7 @@ export class TileScheduler {
 			Math.floor(options.retryMaxDelayMs ?? 1200),
 		);
 		this.authToken = options.authToken ?? "";
+		this.blacklistEnabled = options.blacklistEnabled ?? false;
 		this.onTileLoad = options.onTileLoad;
 		this.onTileError = options.onTileError;
 		this.onStateChange = options.onStateChange;
@@ -104,6 +108,14 @@ export class TileScheduler {
 
 	setAuthToken(token: string): void {
 		this.authToken = String(token ?? "");
+	}
+
+	clearBlacklist(): void {
+		this.blacklistedKeys.clear();
+	}
+
+	getBlacklistedKeys(): ReadonlySet<string> {
+		return this.blacklistedKeys;
 	}
 
 	schedule(tiles: readonly ScheduledTile[]): void {
@@ -119,6 +131,10 @@ export class TileScheduler {
 		this.abortInvisibleInflight(nextVisibleKeys);
 
 		for (const tile of tiles) {
+			if (this.blacklistEnabled && this.blacklistedKeys.has(tile.key)) {
+				continue;
+			}
+
 			if (this.inflight.has(tile.key)) {
 				const inflight = this.inflight.get(tile.key);
 				if (inflight) inflight.tile = tile;
@@ -310,6 +326,9 @@ export class TileScheduler {
 				}
 
 				this.failedCount += 1;
+				if (this.blacklistEnabled && item.attempt >= this.maxRetries) {
+					this.blacklistedKeys.add(item.tile.key);
+				}
 				this.onTileError?.(item.tile, error, item.attempt + 1);
 			})
 			.finally(() => {

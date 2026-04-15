@@ -55,6 +55,10 @@ export interface WsiViewTransitionOptions {
   easing?: (t: number) => number;
 }
 
+export interface WsiTileBlacklistConfig {
+  enabled: boolean;
+}
+
 export interface WsiTileSchedulerConfig {
   maxConcurrency?: number;
   maxRetries?: number;
@@ -85,6 +89,7 @@ export interface WsiTileRendererOptions {
   ctrlDragRotate?: boolean;
   rotationDragSensitivityDegPerPixel?: number;
   tileScheduler?: WsiTileSchedulerConfig;
+  tileBlacklist?: WsiTileBlacklistConfig;
   onTileError?: (event: WsiTileErrorEvent) => void;
   onContextLost?: () => void;
   onContextRestored?: () => void;

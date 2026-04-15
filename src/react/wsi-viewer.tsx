@@ -1,6 +1,6 @@
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { WsiImageColorSettings, WsiImageSource, WsiRenderStats, WsiViewState } from "../wsi/types";
-import type { WsiTileErrorEvent, WsiViewTransitionOptions } from "../wsi/wsi-tile-renderer";
+import type { WsiTileBlacklistConfig, WsiTileErrorEvent, WsiViewTransitionOptions } from "../wsi/wsi-tile-renderer";
 import { WsiTileRenderer } from "../wsi/wsi-tile-renderer";
 import { observeDevicePixelRatioChanges } from "../wsi/device-pixel-ratio";
 import type { DrawCoordinate } from "./draw-layer-types";
@@ -29,6 +29,7 @@ export interface WsiViewerProps {
   zoomSnaps?: number[];
   zoomSnapFitAsMin?: boolean;
   panExtent?: number | { x: number; y: number };
+  tileBlacklist?: WsiTileBlacklistConfig;
   onPointerWorldMove?: (event: PointerWorldMoveEvent) => void;
   debugOverlay?: boolean;
   debugOverlayStyle?: CSSProperties;
@@ -69,6 +70,7 @@ export function WsiViewer({
   zoomSnaps,
   zoomSnapFitAsMin,
   panExtent,
+  tileBlacklist,
   onPointerWorldMove,
   debugOverlay = false,
   debugOverlayStyle,
@@ -325,6 +327,7 @@ export function WsiViewer({
       zoomSnaps,
       zoomSnapFitAsMin,
       panExtent,
+      tileBlacklist,
     });
 
     rendererRef.current = renderer;
@@ -336,7 +339,7 @@ export function WsiViewer({
       renderer.destroy();
       rendererRef.current = null;
     };
-  }, [source, handleRendererStats, ctrlDragRotate, emitViewStateChange, initialRotateValue, toInternalViewState]);
+  }, [source, handleRendererStats, ctrlDragRotate, emitViewStateChange, initialRotateValue, toInternalViewState, tileBlacklist?.enabled]);
 
   // --- core renderer sync effects ---
 

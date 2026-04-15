@@ -59,7 +59,7 @@ import { cancelViewAnimation as cancelManagedViewAnimation, startViewAnimation }
 import { computeFitToImageTarget, computeZoomByTarget, computeZoomToTarget, resolveTargetViewState as resolveManagedTargetViewState, resolveZoomBounds } from "./wsi-view-ops";
 import { normalizeZoomSnaps, resolveSnapTarget, SNAP_ZOOM_DURATION_MS, startZoomPivotAnimation, type ZoomPivotAnimationContext } from "./wsi-zoom-snap";
 
-export type { PointSizeByZoom, WsiTileErrorEvent, WsiTileRendererOptions, WsiTileSchedulerConfig, WsiViewTransitionOptions } from "./wsi-renderer-types";
+export type { PointSizeByZoom, WsiTileBlacklistConfig, WsiTileErrorEvent, WsiTileRendererOptions, WsiTileSchedulerConfig, WsiViewTransitionOptions } from "./wsi-renderer-types";
 
 const DEFAULT_POINT_LAYER_ID = "__default_point_layer__";
 
@@ -206,6 +206,7 @@ export class WsiTileRenderer {
       maxRetries: options.tileScheduler?.maxRetries ?? 2,
       retryBaseDelayMs: options.tileScheduler?.retryBaseDelayMs ?? 120,
       retryMaxDelayMs: options.tileScheduler?.retryMaxDelayMs ?? 1200,
+      blacklistEnabled: options.tileBlacklist?.enabled ?? false,
       onTileLoad: (tile, bitmap) =>
         cacheTileLoaded({
           gl: this.gl,
@@ -369,6 +370,8 @@ export class WsiTileRenderer {
   setAuthToken(token: string): void {
     this.authToken = String(token ?? "");
     this.tileScheduler.setAuthToken(this.authToken);
+    // Auth-related failures are transient — retry previously blacklisted tiles with the new token.
+    this.tileScheduler.clearBlacklist();
   }
 
   setZoomRange(minZoom: number | null | undefined, maxZoom: number | null | undefined): void {
@@ -416,6 +419,10 @@ export class WsiTileRenderer {
 
   getZoomRange(): { minZoom: number; maxZoom: number } {
     return { minZoom: this.minZoom, maxZoom: this.maxZoom };
+  }
+
+  getBlacklistedTileKeys(): ReadonlySet<string> {
+    return this.tileScheduler.getBlacklistedKeys();
   }
 
   getRegionLabelAutoLiftCapZoom(): number {
@@ -754,6 +761,7 @@ export class WsiTileRenderer {
     if (this.destroyed) return;
     this.contextLost = false;
     this.cache.clear();
+    this.tileScheduler.clearBlacklist();
 
     this.tileProgram = initTileProgram(this.gl);
     for (const layer of this.pointLayers.values()) {

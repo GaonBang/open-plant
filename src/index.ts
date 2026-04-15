@@ -154,6 +154,7 @@ export type { ParsedWktGeometry, ParsedWktMultiPolygon, ParsedWktPolygon } from 
 export { parseWkt } from "./wsi/wkt";
 export type {
   PointSizeByZoom,
+  WsiTileBlacklistConfig,
   WsiTileErrorEvent,
   WsiTileRendererOptions,
   WsiTileSchedulerConfig,
