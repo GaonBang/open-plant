@@ -14,14 +14,14 @@ import {
   clonePointSizeMagnificationStops,
   clonePointSizeStops,
   clonePointWeightMagnificationStops,
-  DEFAULT_POINT_SIZE_STOPS,
   DEFAULT_POINT_INNER_FILL_COLOR,
+  DEFAULT_POINT_SIZE_STOPS,
   DEFAULT_ROTATION_DRAG_SENSITIVITY,
   linearEasing,
   MAX_POINT_SIZE_PX,
   MIN_POINT_SIZE_PX,
-  normalizePointInnerFillOpacity,
   normalizePointInnerFillColor,
+  normalizePointInnerFillOpacity,
   normalizePointLineDash,
   normalizePointOpacity,
   normalizePointSizeMagnificationStops,
@@ -224,6 +224,7 @@ export class WsiTileRenderer {
       depth: false,
       stencil: false,
       powerPreference: "high-performance",
+      preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
     });
     if (!gl) {
       throw new Error("WebGL2 not supported");
@@ -559,11 +560,7 @@ export class WsiTileRenderer {
   setPointInnerFillColor(color: string | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
     const layer = this.ensurePointLayer(layerId);
     const next = normalizePointInnerFillColor(color);
-    if (
-      layer.pointInnerFillColor[0] === next[0] &&
-      layer.pointInnerFillColor[1] === next[1] &&
-      layer.pointInnerFillColor[2] === next[2]
-    ) {
+    if (layer.pointInnerFillColor[0] === next[0] && layer.pointInnerFillColor[1] === next[1] && layer.pointInnerFillColor[2] === next[2]) {
       return;
     }
     layer.pointInnerFillColor = next;

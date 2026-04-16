@@ -45,11 +45,7 @@ export function createProgram(gl: WebGL2RenderingContext, vertexSource: string, 
   return program;
 }
 
-export function requireUniformLocation(
-  gl: WebGL2RenderingContext,
-  program: WebGLProgram,
-  uniformName: string,
-): WebGLUniformLocation {
+export function requireUniformLocation(gl: WebGL2RenderingContext, program: WebGLProgram, uniformName: string): WebGLUniformLocation {
   const location = gl.getUniformLocation(program, uniformName);
   if (!location) {
     throw new Error(`Failed to get uniform location: ${uniformName}`);
@@ -57,13 +53,13 @@ export function requireUniformLocation(
   return location;
 }
 
-export function requireWebGL2(canvas: HTMLCanvasElement): WebGL2RenderingContext {
+export function requireWebGL2(canvas: HTMLCanvasElement, options?: { preserveDrawingBuffer?: boolean }): WebGL2RenderingContext {
   const context = canvas.getContext("webgl2", {
     alpha: false,
     antialias: false,
     depth: false,
     stencil: false,
-    preserveDrawingBuffer: false,
+    preserveDrawingBuffer: options?.preserveDrawingBuffer ?? false,
     powerPreference: "high-performance",
   });
 
