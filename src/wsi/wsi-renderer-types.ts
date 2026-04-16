@@ -114,6 +114,7 @@ export interface WsiTileRendererOptions {
   zoomSnaps?: number[];
   zoomSnapFitAsMin?: boolean;
   panExtent?: number | { x: number; y: number };
+  preserveDrawingBuffer?: boolean;
 }
 
 export interface ViewAnimationState {

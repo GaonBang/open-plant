@@ -14,14 +14,14 @@ import {
   clonePointSizeMagnificationStops,
   clonePointSizeStops,
   clonePointWeightMagnificationStops,
-  DEFAULT_POINT_SIZE_STOPS,
   DEFAULT_POINT_INNER_FILL_COLOR,
+  DEFAULT_POINT_SIZE_STOPS,
   DEFAULT_ROTATION_DRAG_SENSITIVITY,
   linearEasing,
   MAX_POINT_SIZE_PX,
   MIN_POINT_SIZE_PX,
-  normalizePointInnerFillOpacity,
   normalizePointInnerFillColor,
+  normalizePointInnerFillOpacity,
   normalizePointLineDash,
   normalizePointOpacity,
   normalizePointSizeMagnificationStops,
@@ -225,6 +225,7 @@ export class WsiTileRenderer {
       depth: false,
       stencil: false,
       powerPreference: "high-performance",
+      preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
     });
     if (!gl) {
       throw new Error("WebGL2 not supported");
@@ -310,6 +311,7 @@ export class WsiTileRenderer {
   }
 
   private startViewAnimation(target: WsiViewState, durationMs: number, easing: (t: number) => number): void {
+    this.resetZoomSnapStateForZoomChange(this.camera.getViewState().zoom, target.zoom);
     startViewAnimation({
       state: this.viewAnimationState,
       camera: this.camera,
@@ -395,10 +397,23 @@ export class WsiTileRenderer {
     return out;
   }
 
+  private resetZoomSnapState(): void {
+    this.zoomSnapState.accumulatedDelta = 0;
+    this.zoomSnapState.lastSnapTimeMs = 0;
+    this.zoomSnapState.blockedDirection = null;
+  }
+
+  private resetZoomSnapStateForZoomChange(currentZoom: number, targetZoom: number): void {
+    if (Math.abs(currentZoom - targetZoom) < 1e-6) return;
+    this.resetZoomSnapState();
+  }
+
   private applyViewStateAndRender(next: WsiViewState, cancelAnimation = true): void {
+    const current = this.camera.getViewState();
     if (cancelAnimation) {
       this.cancelViewAnimation();
     }
+    this.resetZoomSnapStateForZoomChange(current.zoom, next.zoom);
     this.camera.setViewState(next);
     this.onViewStateChange?.(this.camera.getViewState());
     this.requestRender();
@@ -421,6 +436,7 @@ export class WsiTileRenderer {
     this.minZoomOverride = nextMinOverride;
     this.maxZoomOverride = nextMaxOverride;
     this.applyZoomBounds();
+    this.resetZoomSnapState();
 
     const target = this.resolveTargetViewState({});
     const current = this.camera.getViewState();
@@ -568,11 +584,7 @@ export class WsiTileRenderer {
   setPointInnerFillColor(color: string | null | undefined, layerId: string = DEFAULT_POINT_LAYER_ID): void {
     const layer = this.ensurePointLayer(layerId);
     const next = normalizePointInnerFillColor(color);
-    if (
-      layer.pointInnerFillColor[0] === next[0] &&
-      layer.pointInnerFillColor[1] === next[1] &&
-      layer.pointInnerFillColor[2] === next[2]
-    ) {
+    if (layer.pointInnerFillColor[0] === next[0] && layer.pointInnerFillColor[1] === next[1] && layer.pointInnerFillColor[2] === next[2]) {
       return;
     }
     layer.pointInnerFillColor = next;
@@ -705,6 +717,7 @@ export class WsiTileRenderer {
   setZoomSnaps(magnifications: number[] | null | undefined, fitAsMin?: boolean): void {
     this.zoomSnaps = normalizeZoomSnaps(magnifications, this.source.mpp);
     this.zoomSnapFitAsMin = Boolean(fitAsMin);
+    this.resetZoomSnapState();
   }
 
   setPanExtent(extent: number | { x: number; y: number } | null | undefined): void {
