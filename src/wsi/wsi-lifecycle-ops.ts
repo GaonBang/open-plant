@@ -1,5 +1,6 @@
+import type { TileLruCache } from "./tile-lru-cache";
 import type { TileScheduler } from "./tile-scheduler";
-import type { CachedTile, PointProgram, TileVertexProgram } from "./wsi-renderer-types";
+import type { PointProgram, TileVertexProgram } from "./wsi-renderer-types";
 import { deleteCachedTextures } from "./wsi-tile-cache";
 
 export interface ContextLostOptions {
@@ -10,7 +11,7 @@ export interface ContextLostOptions {
   cancelViewAnimation: () => void;
   cancelDrag: () => void;
   tileScheduler: TileScheduler;
-  cache: Map<string, CachedTile>;
+  cache: TileLruCache;
   onContextLost?: () => void;
 }
 
@@ -58,7 +59,7 @@ export interface DestroyRendererOptions {
   tileScheduler: TileScheduler;
   contextLost: boolean;
   gl: WebGL2RenderingContext;
-  cache: Map<string, CachedTile>;
+  cache: TileLruCache;
   tileProgram: TileVertexProgram;
   pointPrograms: PointProgram[];
 }

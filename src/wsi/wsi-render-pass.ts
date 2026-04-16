@@ -1,4 +1,5 @@
 import type { OrthoCamera } from "../core/ortho-camera";
+import type { TileLruCache } from "./tile-lru-cache";
 import type { ScheduledTile, TileScheduler } from "./tile-scheduler";
 import type { WsiImageSource } from "./types";
 import type { Bounds, CachedTile, NormalizedImageColorSettings, PointProgram, TileVertexProgram } from "./wsi-renderer-types";
@@ -21,7 +22,7 @@ export interface RenderFrameOptions {
   gl: WebGL2RenderingContext;
   camera: OrthoCamera;
   source: WsiImageSource;
-  cache: Map<string, CachedTile>;
+  cache: TileLruCache;
   frameSerial: number;
   tileProgram: TileVertexProgram;
   imageColorSettings: NormalizedImageColorSettings;

@@ -1,5 +1,6 @@
 import { OrthoCamera } from "../core/ortho-camera";
 import { observeDevicePixelRatioChanges } from "./device-pixel-ratio";
+import { TileLruCache } from "./tile-lru-cache";
 import { TileScheduler } from "./tile-scheduler";
 import type { WsiImageColorSettings, WsiImageSource, WsiPointData, WsiRenderStats, WsiViewState } from "./types";
 import { calcViewingMagnification, clamp, isSameViewState, nowMs } from "./utils";
@@ -42,7 +43,6 @@ import type { RenderPointLayer } from "./wsi-render-pass";
 import { renderFrame } from "./wsi-render-pass";
 import type {
   Bounds,
-  CachedTile,
   InteractionState,
   NormalizedImageColorSettings,
   PointProgram,
@@ -158,7 +158,7 @@ export class WsiTileRenderer {
     contrast: 0,
     saturation: 0,
   };
-  private cache = new Map<string, CachedTile>();
+  private cache = new TileLruCache();
   private zoomSnaps: number[] = [];
   private zoomSnapFitAsMin = false;
   private zoomSnapState: ZoomSnapState = { accumulatedDelta: 0, lastSnapTimeMs: 0, blockedDirection: null };

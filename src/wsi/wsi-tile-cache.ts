@@ -1,3 +1,4 @@
+import type { TileLruCache } from "./tile-lru-cache";
 import type {
   HandleTileLoadedOptions,
   TileCacheTrimOptions,
@@ -8,17 +9,9 @@ export function trimTileCache(options: TileCacheTrimOptions): void {
   if (cache.size <= maxCacheTiles) return;
   const targetSize = Math.max(0, Math.floor(maxCacheTiles));
   while (cache.size > targetSize) {
-    let oldestKey: string | null = null;
-    let oldestValue: { texture: WebGLTexture; lastUsed: number } | null = null;
-    for (const [key, value] of cache) {
-      if (!oldestValue || value.lastUsed < oldestValue.lastUsed) {
-        oldestKey = key;
-        oldestValue = value;
-      }
-    }
-    if (!oldestKey || !oldestValue) break;
-    gl.deleteTexture(oldestValue.texture);
-    cache.delete(oldestKey);
+    const evicted = cache.evictLru();
+    if (!evicted) break;
+    gl.deleteTexture(evicted.texture);
   }
 }
 
@@ -67,7 +60,7 @@ export function handleTileLoaded(options: HandleTileLoadedOptions): void {
   requestRender();
 }
 
-export function deleteCachedTextures(gl: WebGL2RenderingContext, cache: Map<string, { texture: WebGLTexture }>): void {
+export function deleteCachedTextures(gl: WebGL2RenderingContext, cache: TileLruCache): void {
   for (const [, value] of cache) {
     gl.deleteTexture(value.texture);
   }

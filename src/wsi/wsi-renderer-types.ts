@@ -1,3 +1,4 @@
+import type { TileLruCache } from "./tile-lru-cache";
 import type { ScheduledTile, TileBounds } from "./tile-scheduler";
 import type { WsiImageColorSettings, WsiImageSource, WsiRenderStats, WsiViewState } from "./types";
 
@@ -157,7 +158,7 @@ export interface ViewAnimationRuntimeState {
 
 export interface HandleTileLoadedOptions {
   gl: WebGL2RenderingContext;
-  cache: Map<string, CachedTile>;
+  cache: TileLruCache;
   tile: ScheduledTile;
   bitmap: ImageBitmap;
   frameSerial: number;
@@ -169,7 +170,7 @@ export interface HandleTileLoadedOptions {
 
 export interface TileCacheTrimOptions {
   gl: WebGL2RenderingContext;
-  cache: Map<string, CachedTile>;
+  cache: TileLruCache;
   maxCacheTiles: number;
 }
 
