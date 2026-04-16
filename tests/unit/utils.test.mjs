@@ -137,3 +137,66 @@ test("WsiTileRenderer.getPointStrokeScale: falls back to static strokeScale when
 
   assert.equal(WsiTileRenderer.prototype.getPointStrokeScale.call(renderer, layerId), 1.7);
 });
+
+function createViewStateSyncRendererStub(initialViewState, initialSnapState) {
+  const cameraState = { ...initialViewState };
+  const renderer = {
+    camera: {
+      getViewState: () => ({ ...cameraState }),
+      setViewState: next => {
+        if (typeof next.zoom === "number") cameraState.zoom = next.zoom;
+        if (typeof next.offsetX === "number") cameraState.offsetX = next.offsetX;
+        if (typeof next.offsetY === "number") cameraState.offsetY = next.offsetY;
+        if (typeof next.rotationDeg === "number") cameraState.rotationDeg = next.rotationDeg;
+      },
+    },
+    viewTransitionDurationMs: 0,
+    viewTransitionEasing: t => t,
+    zoomSnapState: { ...initialSnapState },
+    cancelViewAnimation: () => {},
+    onViewStateChange: () => {},
+    requestRender: () => {},
+    resolveTargetViewState(next) {
+      return {
+        zoom: typeof next.zoom === "number" ? next.zoom : cameraState.zoom,
+        offsetX: typeof next.offsetX === "number" ? next.offsetX : cameraState.offsetX,
+        offsetY: typeof next.offsetY === "number" ? next.offsetY : cameraState.offsetY,
+        rotationDeg: typeof next.rotationDeg === "number" ? next.rotationDeg : cameraState.rotationDeg,
+      };
+    },
+    startViewAnimation: () => {
+      throw new Error("animation was not expected in this test");
+    },
+  };
+
+  renderer.resetZoomSnapState = WsiTileRenderer.prototype.resetZoomSnapState;
+  renderer.resetZoomSnapStateForZoomChange = WsiTileRenderer.prototype.resetZoomSnapStateForZoomChange;
+  renderer.applyViewStateAndRender = WsiTileRenderer.prototype.applyViewStateAndRender;
+
+  return { renderer, getCameraState: () => ({ ...cameraState }) };
+}
+
+test("WsiTileRenderer.setViewState: clears blocked snap state after external zoom change", () => {
+  const { renderer, getCameraState } = createViewStateSyncRendererStub(
+    { zoom: 4, offsetX: 0, offsetY: 0, rotationDeg: 0 },
+    { accumulatedDelta: 5, lastSnapTimeMs: 123, blockedDirection: "in" }
+  );
+
+  WsiTileRenderer.prototype.setViewState.call(renderer, { zoom: 2 });
+
+  assert.deepEqual(renderer.zoomSnapState, { accumulatedDelta: 0, lastSnapTimeMs: 0, blockedDirection: null });
+  assert.equal(getCameraState().zoom, 2);
+});
+
+test("WsiTileRenderer.setViewState: preserves blocked snap state when zoom stays the same", () => {
+  const { renderer, getCameraState } = createViewStateSyncRendererStub(
+    { zoom: 4, offsetX: 0, offsetY: 0, rotationDeg: 0 },
+    { accumulatedDelta: 0, lastSnapTimeMs: 123, blockedDirection: "in" }
+  );
+
+  WsiTileRenderer.prototype.setViewState.call(renderer, { offsetX: 24 });
+
+  assert.deepEqual(renderer.zoomSnapState, { accumulatedDelta: 0, lastSnapTimeMs: 123, blockedDirection: "in" });
+  assert.equal(getCameraState().zoom, 4);
+  assert.equal(getCameraState().offsetX, 24);
+});
